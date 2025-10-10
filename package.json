@@ -11,7 +11,7 @@
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "db:push": "drizzle-kit push",
-    "build:deploy": "pnpm build && pnpm db:migrate"
+    "build:deploy": "npm build && npm db:migrate"
   },
   "dependencies": {
     "@daveyplate/better-auth-ui": "^3.2.5",
