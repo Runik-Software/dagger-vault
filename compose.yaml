@@ -1,0 +1,20 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    ports:
+      - 5432:5432
+    environment:
+      - POSTGRES_PASSWORD=S3cret
+      - POSTGRES_USER=postgres
+      - POSTGRES_DB=dagger_vault
+    volumes:
+      - postrges:/var/lib/postgresql/data
+  drizzle-gate:
+    image: ghcr.io/drizzle-team/gateway:latest
+    ports:
+      - 4983:4983
+    volumes:
+      - drizzle-gateway:/app:rw
+volumes:
+  drizzle-gateway:
+  postrges:

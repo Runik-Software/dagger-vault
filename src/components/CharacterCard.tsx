@@ -1,3 +1,6 @@
+import { ChevronDown, ChevronUp, Pencil, Trash2, User } from "lucide-react";
+import Image from "next/image";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import {
@@ -7,17 +10,25 @@ import {
 } from "@/components/ui/collapsible";
 import { Textarea } from "@/components/ui/textarea";
 import type { Character } from "@/schema";
-import { ChevronDown, ChevronUp, Pencil, Trash2, User } from "lucide-react";
-import Image from "next/image";
-import { useState } from "react";
 import { GoldTracker } from "./GoldTracker";
 import { ResourceTracker } from "./ResourceTracker";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "./ui/alert-dialog";
 
 interface CharacterCardProps {
   character: Character;
-  onUpdate: (id: string, updates: Partial<Character>) => void;
+  onUpdate: (updates: Partial<Character>) => void;
   onEdit: (character: Character) => void;
-  onDelete: (id: string) => void;
+  onDelete: () => void;
 }
 
 export default function CharacterCard({
@@ -61,14 +72,41 @@ export default function CharacterCard({
               >
                 <Pencil className="h-4 w-4" />
               </Button>
-              <Button
-                data-testid={`button-delete-${character.id}`}
-                size="sm"
-                variant="outline"
-                onClick={() => onDelete(character.id)}
-              >
-                <Trash2 className="h-4 w-4" />
-              </Button>
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button
+                    data-testid={`button-delete-${character.id}`}
+                    size="sm"
+                    variant="outline"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle className="font-display">
+                      Delete Character?
+                    </AlertDialogTitle>
+                    <AlertDialogDescription className="font-serif">
+                      Are you sure you want to delete{" "}
+                      <span className="font-semibold">{character.name}</span>?
+                      This action cannot be undone.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel data-testid="button-cancel-delete">
+                      Cancel
+                    </AlertDialogCancel>
+                    <AlertDialogAction
+                      data-testid="button-confirm-delete"
+                      onClick={onDelete}
+                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                    >
+                      Delete
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
             </div>
           </div>
         </div>
@@ -93,9 +131,7 @@ export default function CharacterCard({
             <Textarea
               placeholder="Add character notes, backstory, or important details..."
               value={character.notes || ""}
-              onChange={(e) =>
-                onUpdate(character.id, { notes: e.target.value })
-              }
+              onChange={(e) => onUpdate({ notes: e.target.value })}
               className="min-h-[100px] font-serif"
               data-testid={`input-notes-${character.id}`}
             />
@@ -104,36 +140,36 @@ export default function CharacterCard({
 
         <div className="space-y-4">
           <ResourceTracker
+            character={character}
             label="Hit Points"
             field={character.hitpoints}
-            id={character.id}
             name="hitpoints"
             onUpdate={onUpdate}
           />
           <ResourceTracker
+            character={character}
             label="Hope"
             field={character.hope}
-            id={character.id}
             name="hope"
             onUpdate={onUpdate}
           />
           <ResourceTracker
+            character={character}
             label="Stress"
             field={character.stress}
-            id={character.id}
             name="stress"
             onUpdate={onUpdate}
           />
           <ResourceTracker
+            character={character}
             label="Armour Slots"
             field={character.armourSlots}
-            id={character.id}
             name="armourSlots"
             onUpdate={onUpdate}
           />
           <GoldTracker
             gold={character.gold}
-            onUpdate={(gold) => onUpdate(character.id, { gold })}
+            onUpdate={(gold) => onUpdate({ gold })}
           />
         </div>
       </div>
