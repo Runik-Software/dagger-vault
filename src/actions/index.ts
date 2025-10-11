@@ -1,19 +1,12 @@
 "use server";
 
-import { asc, eq } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { headers } from "next/headers";
-import Pusher from "pusher";
 import { campaign, character, userCampaign } from "@/db/schema";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import type { Character, EditCharacter } from "@/schema";
-
-const pusher = new Pusher({
-  appId: process.env.PUSHER_APP_ID!,
-  key: process.env.PUSHER_KEY!,
-  secret: process.env.PUSHER_SECRET!,
-  cluster: process.env.PUSHER_CLUSTER!,
-});
+import { pusher } from "@/lib/pusher";
 
 const getCurrentUserId = async () => {
   const session = await auth.api.getSession({
@@ -37,17 +30,46 @@ export const createCampaign = async (name: string, description?: string) => {
   return created;
 };
 
-export const getCharacters = async (): Promise<Character[]> => {
-  return db.select().from(character).orderBy(asc(character.name));
+export const getCampaigns = async () => {
+  const userId = await getCurrentUserId();
+  return db.query.campaign.findMany({
+    where: {
+      OR: [{ ownerUserId: userId }, { users: { id: userId } }],
+    },
+  });
+};
+
+export const getCampaign = async (id: string) => {
+  const userId = await getCurrentUserId();
+  return db.query.campaign.findFirst({
+    where: {
+      OR: [{ ownerUserId: userId }, { users: { id: userId } }],
+      id,
+    },
+  });
+};
+
+export const getCharacters = async (
+  campaignId: string,
+): Promise<Character[]> => {
+  return db.query.character.findMany({
+    where: {
+      campaignId,
+    },
+    orderBy: {
+      name: "asc",
+    },
+  });
 };
 
 export const createCharacter = async (
+  campaignId: string,
   data: EditCharacter,
 ): Promise<Character> => {
   const userId = await getCurrentUserId();
   const [created] = await db
     .insert(character)
-    .values({ ...data, userId })
+    .values({ ...data, userId, campaignId })
     .returning();
   return created;
 };
@@ -59,7 +81,13 @@ export const updateCharacter = async (id: string, data: Partial<Character>) => {
     .where(eq(character.id, id))
     .returning();
   console.log("Triggering character-updated event for id:", updated.id);
-  pusher.trigger("characters", "character-updated", { character: updated });
+  pusher.trigger(
+    `private-campaign-${updated.campaignId}-characters`,
+    "update",
+    {
+      character: updated,
+    },
+  );
   return updated;
 };
 

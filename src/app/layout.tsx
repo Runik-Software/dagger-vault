@@ -42,16 +42,18 @@ export default function RootLayout({
         <Providers>
           <header className="border-b sticky top-0 bg-accent z-10">
             <div className="container mx-auto flex items-center justify-between">
-              <Link href="/" className="cursor-pointer">
+              <Link href="/" className="cursor-pointer px-4">
                 <Image
-                  src="/daggerheart-logo-2.png"
+                  src="/daggervault-logo-2.png"
                   alt="Daggerheart RPG"
                   width={150}
-                  height={150}
+                  height={85}
                 />
               </Link>
               <SignedIn>
-                <UserButton size="icon" className="border cursor-pointer" />
+                <div className="pr-4">
+                  <UserButton size="sm" className="border cursor-pointer" />
+                </div>
               </SignedIn>
               <SignedOut>
                 <Link href="/auth/sign-in" className="pr-4">

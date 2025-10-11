@@ -15,9 +15,9 @@ export const character = pgTable("characters", {
   userId: text("user_id")
     .references(() => user.id, { onDelete: "cascade" })
     .notNull(),
-  // campaignId: uuid("campaign_id")
-  //   .references(() => campaign.id, { onDelete: "cascade" })
-  //   .notNull(),
+  campaignId: uuid("campaign_id")
+    .references(() => campaign.id, { onDelete: "cascade" })
+    .notNull(),
   portraitUrl: text("portrait_url"),
   name: text("name").notNull(),
   notes: text("notes"),
@@ -36,6 +36,10 @@ export const character = pgTable("characters", {
 export const campaign = pgTable("campaigns", {
   id: uuid("id").primaryKey().defaultRandom(),
   name: text("name").notNull(),
+  ownerUserId: text("owner_user_id").references(() => user.id, {
+    onDelete: "cascade",
+  }),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
   description: text("description"),
 });
 
