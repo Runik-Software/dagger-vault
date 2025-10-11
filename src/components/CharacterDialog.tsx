@@ -1,4 +1,7 @@
-import { useEffect, useState } from "react";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useEffect } from "react";
+import { Controller, useForm } from "react-hook-form";
+import type z from "zod";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -10,16 +13,21 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import type { Character } from "@/schema";
+import {
+  type Character,
+  type EditCharacter,
+  editCharacterSchema,
+} from "@/schema";
+import { Field, FieldError, FieldGroup, FieldLabel } from "./ui/field";
 
 interface CharacterDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   character?: Character | null;
-  onSave: (character: Partial<Character>) => void;
+  onSave: (character: EditCharacter) => void;
 }
 
-const emptyCharacter: Omit<Character, "id"> = {
+const emptyCharacter: EditCharacter = {
   name: "",
   notes: "",
   hitpoints: { current: 10, max: 10 },
@@ -36,29 +44,18 @@ export default function CharacterDialog({
   character,
   onSave,
 }: CharacterDialogProps) {
-  const [formData, setFormData] =
-    useState<Omit<Character, "id">>(emptyCharacter);
+  const form = useForm<z.infer<typeof editCharacterSchema>>({
+    defaultValues: character ?? emptyCharacter,
+    resolver: zodResolver(editCharacterSchema),
+  });
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: We want to reset when character or open changes
   useEffect(() => {
-    if (character) {
-      setFormData({
-        name: character.name,
-        notes: character.notes || "",
-        hitpoints: character.hitpoints,
-        hope: character.hope,
-        stress: character.stress,
-        armourSlots: character.armourSlots,
-        gold: character.gold,
-        portraitUrl: character.portraitUrl || "",
-      });
-    } else {
-      setFormData(emptyCharacter);
-    }
-  }, [character]);
+    form.reset(character ?? emptyCharacter);
+  }, [character, form, open]);
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    onSave(formData);
+  const handleSubmit = (data: z.infer<typeof editCharacterSchema>) => {
+    onSave(data);
     onOpenChange(false);
   };
 
@@ -75,269 +72,374 @@ export default function CharacterDialog({
               : "Create a new character."}
           </DialogDescription>
         </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="name" className="font-serif">
-              Character Name
-            </Label>
-            <Input
-              id="name"
-              data-testid="input-character-name"
-              value={formData.name}
-              onChange={(e) =>
-                setFormData({ ...formData, name: e.target.value })
-              }
-              required
-              placeholder="Enter character name"
+        <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
+          <FieldGroup>
+            <Controller
+              name="name"
+              control={form.control}
+              render={({ field, fieldState }) => (
+                <Field data-invalid={fieldState.invalid} className="space-y-2">
+                  <FieldLabel>Character Name</FieldLabel>
+                  <Input
+                    {...field}
+                    aria-invalid={fieldState.invalid}
+                    placeholder="Enter character name"
+                  />
+                  {fieldState.invalid && (
+                    <FieldError errors={[fieldState.error]} />
+                  )}
+                </Field>
+              )}
             />
-          </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="notes" className="font-serif">
-              Notes
-            </Label>
-            <Textarea
-              id="notes"
-              data-testid="input-character-notes"
-              value={formData.notes}
-              onChange={(e) =>
-                setFormData({ ...formData, notes: e.target.value })
-              }
-              placeholder="Character backstory, important details..."
-              className="min-h-[80px]"
+            <Controller
+              name="notes"
+              control={form.control}
+              render={({ field, fieldState }) => (
+                <Field data-invalid={fieldState.invalid} className="space-y-2">
+                  <FieldLabel>Notes</FieldLabel>
+                  <Textarea
+                    {...field}
+                    value={field.value ?? ""}
+                    aria-invalid={fieldState.invalid}
+                    placeholder="Any notes about this character e.g. damage thresholds"
+                  />
+                  {fieldState.invalid && (
+                    <FieldError errors={[fieldState.error]} />
+                  )}
+                </Field>
+              )}
             />
-          </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="portraitUrl" className="font-serif">
-              Portrait URL (optional)
-            </Label>
-            <Input
-              id="portraitUrl"
-              data-testid="input-portrait-url"
-              value={formData.portraitUrl}
-              onChange={(e) =>
-                setFormData({ ...formData, portraitUrl: e.target.value })
-              }
-              placeholder="https://example.com/portrait.jpg"
+            <Controller
+              name="portraitUrl"
+              control={form.control}
+              render={({ field, fieldState }) => (
+                <Field data-invalid={fieldState.invalid} className="space-y-2">
+                  <FieldLabel>Character portrait</FieldLabel>
+                  <Input
+                    {...field}
+                    value={field.value ?? ""}
+                    aria-invalid={fieldState.invalid}
+                    placeholder="URL to an image of the character"
+                  />
+                  {fieldState.invalid && (
+                    <FieldError errors={[fieldState.error]} />
+                  )}
+                </Field>
+              )}
             />
-          </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="hitPoints" className="font-serif">
-                Hit Points
-              </Label>
-              <Input
-                type="number"
-                value={formData.hitpoints.current}
-                onChange={(e) =>
-                  setFormData({
-                    ...formData,
-                    hitpoints: {
-                      ...formData.hitpoints,
-                      current: parseInt(e.target.value, 10) || 0,
-                    },
-                  })
-                }
+            <div className="grid grid-cols-2 gap-4">
+              <Controller
+                name="hitpoints.current"
+                control={form.control}
+                render={({ field, fieldState }) => (
+                  <Field
+                    data-invalid={fieldState.invalid}
+                    className="space-y-2"
+                  >
+                    <FieldLabel>Hit Points</FieldLabel>
+                    <Input
+                      {...field}
+                      onChange={(e) =>
+                        field.onChange(
+                          e.target.value === ""
+                            ? undefined
+                            : Number(e.target.value),
+                        )
+                      }
+                      aria-invalid={fieldState.invalid}
+                    />
+                    {fieldState.invalid && (
+                      <FieldError errors={[fieldState.error]} />
+                    )}
+                  </Field>
+                )}
               />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="maxHitPoints" className="font-serif">
-                Max HP
-              </Label>
-              <Input
-                type="number"
-                value={formData.hitpoints.max}
-                onChange={(e) =>
-                  setFormData({
-                    ...formData,
-                    hitpoints: {
-                      ...formData.hitpoints,
-                      max: parseInt(e.target.value, 10) || 0,
-                    },
-                  })
-                }
-              />
-            </div>
-          </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="hope" className="font-serif">
-                Hope
-              </Label>
-              <Input
-                type="number"
-                value={formData.hope.current}
-                onChange={(e) =>
-                  setFormData({
-                    ...formData,
-                    hope: {
-                      ...formData.hope,
-                      current: parseInt(e.target.value, 10) || 0,
-                    },
-                  })
-                }
+              <Controller
+                name="hitpoints.max"
+                control={form.control}
+                render={({ field, fieldState }) => (
+                  <Field
+                    data-invalid={fieldState.invalid}
+                    className="space-y-2"
+                  >
+                    <FieldLabel>Max HP</FieldLabel>
+                    <Input
+                      {...field}
+                      onChange={(e) =>
+                        field.onChange(
+                          e.target.value === ""
+                            ? undefined
+                            : Number(e.target.value),
+                        )
+                      }
+                      aria-invalid={fieldState.invalid}
+                    />
+                    {fieldState.invalid && (
+                      <FieldError errors={[fieldState.error]} />
+                    )}
+                  </Field>
+                )}
               />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="maxHope" className="font-serif">
-                Max Hope
-              </Label>
-              <Input
-                type="number"
-                value={formData.hope.max}
-                onChange={(e) =>
-                  setFormData({
-                    ...formData,
-                    hope: {
-                      ...formData.hitpoints,
-                      max: parseInt(e.target.value, 10) || 0,
-                    },
-                  })
-                }
-              />
-            </div>
-          </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="stress" className="font-serif">
-                Stress
-              </Label>
-              <Input
-                type="number"
-                value={formData.stress.current}
-                onChange={(e) =>
-                  setFormData({
-                    ...formData,
-                    stress: {
-                      ...formData.stress,
-                      current: parseInt(e.target.value, 10) || 0,
-                    },
-                  })
-                }
+            <div className="grid grid-cols-2 gap-4">
+              <Controller
+                name="hope.current"
+                control={form.control}
+                render={({ field, fieldState }) => (
+                  <Field
+                    data-invalid={fieldState.invalid}
+                    className="space-y-2"
+                  >
+                    <FieldLabel>Hope</FieldLabel>
+                    <Input
+                      {...field}
+                      onChange={(e) =>
+                        field.onChange(
+                          e.target.value === ""
+                            ? undefined
+                            : Number(e.target.value),
+                        )
+                      }
+                      aria-invalid={fieldState.invalid}
+                    />
+                    {fieldState.invalid && (
+                      <FieldError errors={[fieldState.error]} />
+                    )}
+                  </Field>
+                )}
               />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="maxStress" className="font-serif">
-                Max Stress
-              </Label>
-              <Input
-                type="number"
-                value={formData.stress.max}
-                onChange={(e) =>
-                  setFormData({
-                    ...formData,
-                    stress: {
-                      ...formData.stress,
-                      max: parseInt(e.target.value, 10) || 0,
-                    },
-                  })
-                }
-              />
-            </div>
-          </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="armourSlots" className="font-serif">
-                Armour Slots
-              </Label>
-              <Input
-                type="number"
-                value={formData.armourSlots.current}
-                onChange={(e) =>
-                  setFormData({
-                    ...formData,
-                    armourSlots: {
-                      ...formData.armourSlots,
-                      current: parseInt(e.target.value, 10) || 0,
-                    },
-                  })
-                }
+              <Controller
+                name="hope.max"
+                control={form.control}
+                render={({ field, fieldState }) => (
+                  <Field
+                    data-invalid={fieldState.invalid}
+                    className="space-y-2"
+                  >
+                    <FieldLabel>Max Hope</FieldLabel>
+                    <Input
+                      {...field}
+                      onChange={(e) =>
+                        field.onChange(
+                          e.target.value === ""
+                            ? undefined
+                            : Number(e.target.value),
+                        )
+                      }
+                      aria-invalid={fieldState.invalid}
+                    />
+                    {fieldState.invalid && (
+                      <FieldError errors={[fieldState.error]} />
+                    )}
+                  </Field>
+                )}
               />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="maxArmourSlots" className="font-serif">
-                Max Armour
-              </Label>
-              <Input
-                type="number"
-                value={formData.armourSlots.max}
-                onChange={(e) =>
-                  setFormData({
-                    ...formData,
-                    armourSlots: {
-                      ...formData.armourSlots,
-                      max: parseInt(e.target.value, 10) || 0,
-                    },
-                  })
-                }
-              />
-            </div>
-          </div>
 
-          <div className="space-y-2">
-            <Label className="font-serif">Gold</Label>
-            <div className="grid grid-cols-3 gap-2">
-              <div className="space-y-1">
-                <Label htmlFor="goldHandfuls" className="text-xs">
-                  Handfuls
-                </Label>
-                <Input
-                  type="number"
-                  value={formData.gold.handfuls}
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      gold: {
-                        ...formData.gold,
-                        handfuls: parseInt(e.target.value, 10) || 0,
-                      },
-                    })
-                  }
+            <div className="grid grid-cols-2 gap-4">
+              <Controller
+                name="stress.current"
+                control={form.control}
+                render={({ field, fieldState }) => (
+                  <Field
+                    data-invalid={fieldState.invalid}
+                    className="space-y-2"
+                  >
+                    <FieldLabel>Stress</FieldLabel>
+                    <Input
+                      {...field}
+                      onChange={(e) =>
+                        field.onChange(
+                          e.target.value === ""
+                            ? undefined
+                            : Number(e.target.value),
+                        )
+                      }
+                      aria-invalid={fieldState.invalid}
+                    />
+                    {fieldState.invalid && (
+                      <FieldError errors={[fieldState.error]} />
+                    )}
+                  </Field>
+                )}
+              />
+
+              <Controller
+                name="stress.max"
+                control={form.control}
+                render={({ field, fieldState }) => (
+                  <Field
+                    data-invalid={fieldState.invalid}
+                    className="space-y-2"
+                  >
+                    <FieldLabel>Max Stress</FieldLabel>
+                    <Input
+                      {...field}
+                      onChange={(e) =>
+                        field.onChange(
+                          e.target.value === ""
+                            ? undefined
+                            : Number(e.target.value),
+                        )
+                      }
+                      aria-invalid={fieldState.invalid}
+                    />
+                    {fieldState.invalid && (
+                      <FieldError errors={[fieldState.error]} />
+                    )}
+                  </Field>
+                )}
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <Controller
+                name="armourSlots.current"
+                control={form.control}
+                render={({ field, fieldState }) => (
+                  <Field
+                    data-invalid={fieldState.invalid}
+                    className="space-y-2"
+                  >
+                    <FieldLabel>Armour Slots</FieldLabel>
+                    <Input
+                      {...field}
+                      onChange={(e) =>
+                        field.onChange(
+                          e.target.value === ""
+                            ? undefined
+                            : Number(e.target.value),
+                        )
+                      }
+                      aria-invalid={fieldState.invalid}
+                    />
+                    {fieldState.invalid && (
+                      <FieldError errors={[fieldState.error]} />
+                    )}
+                  </Field>
+                )}
+              />
+
+              <Controller
+                name="armourSlots.max"
+                control={form.control}
+                render={({ field, fieldState }) => (
+                  <Field
+                    data-invalid={fieldState.invalid}
+                    className="space-y-2"
+                  >
+                    <FieldLabel>Max Armour Slots</FieldLabel>
+                    <Input
+                      {...field}
+                      onChange={(e) =>
+                        field.onChange(
+                          e.target.value === ""
+                            ? undefined
+                            : Number(e.target.value),
+                        )
+                      }
+                      aria-invalid={fieldState.invalid}
+                    />
+                    {fieldState.invalid && (
+                      <FieldError errors={[fieldState.error]} />
+                    )}
+                  </Field>
+                )}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label className="font-serif">Gold</Label>
+              <div className="grid grid-cols-3 gap-2">
+                <Controller
+                  name="gold.handfuls"
+                  control={form.control}
+                  render={({ field, fieldState }) => (
+                    <Field
+                      data-invalid={fieldState.invalid}
+                      className="space-y-1"
+                    >
+                      <FieldLabel>Handfuls</FieldLabel>
+                      <Input
+                        {...field}
+                        onChange={(e) =>
+                          field.onChange(
+                            e.target.value === ""
+                              ? undefined
+                              : Number(e.target.value),
+                          )
+                        }
+                        aria-invalid={fieldState.invalid}
+                      />
+                      {fieldState.invalid && (
+                        <FieldError errors={[fieldState.error]} />
+                      )}
+                    </Field>
+                  )}
+                />
+
+                <Controller
+                  name="gold.bags"
+                  control={form.control}
+                  render={({ field, fieldState }) => (
+                    <Field
+                      data-invalid={fieldState.invalid}
+                      className="space-y-1"
+                    >
+                      <FieldLabel>Bags</FieldLabel>
+                      <Input
+                        {...field}
+                        onChange={(e) =>
+                          field.onChange(
+                            e.target.value === ""
+                              ? undefined
+                              : Number(e.target.value),
+                          )
+                        }
+                        aria-invalid={fieldState.invalid}
+                      />
+                      {fieldState.invalid && (
+                        <FieldError errors={[fieldState.error]} />
+                      )}
+                    </Field>
+                  )}
+                />
+
+                <Controller
+                  name="gold.chests"
+                  control={form.control}
+                  render={({ field, fieldState }) => (
+                    <Field
+                      data-invalid={fieldState.invalid}
+                      className="space-y-1"
+                    >
+                      <FieldLabel>Chests</FieldLabel>
+                      <Input
+                        {...field}
+                        onChange={(e) =>
+                          field.onChange(
+                            e.target.value === ""
+                              ? undefined
+                              : Number(e.target.value),
+                          )
+                        }
+                        aria-invalid={fieldState.invalid}
+                      />
+                      {fieldState.invalid && (
+                        <FieldError errors={[fieldState.error]} />
+                      )}
+                    </Field>
+                  )}
                 />
               </div>
-              <div className="space-y-1">
-                <Label htmlFor="goldBags" className="text-xs">
-                  Bags
-                </Label>
-                <Input
-                  type="number"
-                  value={formData.gold.bags}
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      gold: {
-                        ...formData.gold,
-                        bags: parseInt(e.target.value, 10) || 0,
-                      },
-                    })
-                  }
-                />
-              </div>
-              <div className="space-y-1">
-                <Label htmlFor="goldChests" className="text-xs">
-                  Chests
-                </Label>
-                <Input
-                  type="number"
-                  value={formData.gold.chests}
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      gold: {
-                        ...formData.gold,
-                        chests: parseInt(e.target.value, 10) || 0,
-                      },
-                    })
-                  }
-                />
-              </div>
             </div>
-          </div>
+          </FieldGroup>
 
           <div className="flex gap-2 pt-4">
             <Button

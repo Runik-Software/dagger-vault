@@ -1,21 +1,22 @@
 import { Minus, Plus } from "lucide-react";
-import type { Character, Resource } from "@/schema";
+import type { Resource } from "@/db/schema";
+import type { Character } from "@/schema";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Progress } from "./ui/progress";
 
 export const ResourceTracker = ({
-  id: characterId,
+  character,
   label,
   field: { current, max },
   name,
   onUpdate,
 }: {
-  id: string;
+  character: Character;
   label: string;
   field: Resource;
   name: keyof Character;
-  onUpdate: (id: string, updates: Partial<Character>) => void;
+  onUpdate: (updates: Partial<Character>) => void;
 }) => {
   const updateResource = (delta: number) => {
     let newValue = current + delta;
@@ -24,8 +25,8 @@ export const ResourceTracker = ({
     } else {
       newValue = Math.max(0, newValue);
     }
-
-    onUpdate(characterId, { [name]: { max, current: newValue } });
+    (character[name] as Resource).current = newValue;
+    onUpdate({ [name]: { max, current: newValue } });
   };
 
   const handleDirectEdit = (value: string) => {
@@ -38,7 +39,7 @@ export const ResourceTracker = ({
       finalValue = Math.max(0, numValue);
     }
 
-    onUpdate(characterId, { [name]: finalValue });
+    onUpdate({ [name]: finalValue });
   };
   return (
     <div className="flex flex-col gap-2">

@@ -1,4 +1,5 @@
 import z from "zod";
+import type { character } from "@/db/schema";
 
 const resourceSchema = z.object({
   current: z.number().min(0),
@@ -11,18 +12,16 @@ const goldSchema = z.object({
   chests: z.number().min(0),
 });
 
-export const characterSchema = z.object({
-  id: z.string(),
-  portraitUrl: z.url().optional(),
+export const editCharacterSchema = z.object({
+  portraitUrl: z.string().nullish(),
   name: z.string().min(1, "Name is required"),
-  notes: z.string().optional(),
+  notes: z.string().nullish(),
   hitpoints: resourceSchema,
   hope: resourceSchema,
   stress: resourceSchema,
   armourSlots: resourceSchema,
-  gold: goldSchema
+  gold: goldSchema,
 });
 
-export type Character = z.infer<typeof characterSchema>;
-export type Resource = z.infer<typeof resourceSchema>;
-export type Gold = z.infer<typeof goldSchema>;
+export type Character = typeof character.$inferSelect;
+export type EditCharacter = z.infer<typeof editCharacterSchema>;
