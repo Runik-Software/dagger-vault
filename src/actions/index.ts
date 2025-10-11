@@ -1,11 +1,19 @@
 "use server";
 
-import { eq } from "drizzle-orm";
+import { asc, eq } from "drizzle-orm";
 import { headers } from "next/headers";
+import Pusher from "pusher";
 import { campaign, character, userCampaign } from "@/db/schema";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import type { Character, EditCharacter } from "@/schema";
+
+const pusher = new Pusher({
+  appId: process.env.PUSHER_APP_ID!,
+  key: process.env.PUSHER_KEY!,
+  secret: process.env.PUSHER_SECRET!,
+  cluster: process.env.PUSHER_CLUSTER!,
+});
 
 const getCurrentUserId = async () => {
   const session = await auth.api.getSession({
@@ -30,8 +38,7 @@ export const createCampaign = async (name: string, description?: string) => {
 };
 
 export const getCharacters = async (): Promise<Character[]> => {
-  const userId = await getCurrentUserId();
-  return db.select().from(character).where(eq(character.userId, userId));
+  return db.select().from(character).orderBy(asc(character.name));
 };
 
 export const createCharacter = async (
@@ -51,6 +58,8 @@ export const updateCharacter = async (id: string, data: Partial<Character>) => {
     .set(data)
     .where(eq(character.id, id))
     .returning();
+  console.log("Triggering character-updated event for id:", updated.id);
+  pusher.trigger("characters", "character-updated", { character: updated });
   return updated;
 };
 

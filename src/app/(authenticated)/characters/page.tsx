@@ -2,7 +2,8 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Plus } from "lucide-react";
-import { useState } from "react";
+import Pusher from "pusher-js";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import {
   createCharacter,
@@ -14,6 +15,8 @@ import CharacterCard from "@/components/CharacterCard";
 import CharacterDialog from "@/components/CharacterDialog";
 import { Button } from "@/components/ui/button";
 import type { Character, EditCharacter } from "@/schema";
+
+const CHANNEL_NAME = "character-updated";
 
 export default function Home() {
   const queryClient = useQueryClient();
@@ -74,7 +77,6 @@ export default function Home() {
   });
 
   const handleUpdate = (id: string, updates: Partial<Character>) => {
-    console.log("Updating character", id, updates);
     updateCharacterMutation.mutate({ id, data: updates });
   };
 
@@ -100,6 +102,30 @@ export default function Home() {
       handleUpdate(editingCharacter.id, character);
     }
   };
+
+  useEffect(() => {
+    const pusher = new Pusher(process.env.NEXT_PUBLIC_PUSHER_KEY!, {
+      cluster: process.env.NEXT_PUBLIC_PUSHER_CLUSTER!,
+    });
+
+    const channel = pusher.subscribe("characters");
+
+    channel.bind(CHANNEL_NAME, ({ character }: { character: Character }) => {
+      queryClient.setQueryData(["characters"], (old: Character[]) => {
+        return old.map((c) => {
+          if (c.id === character.id) {
+            return character;
+          } else {
+            return c;
+          }
+        });
+      });
+    });
+    return () => {
+      pusher.unsubscribe("characters");
+      pusher.disconnect();
+    };
+  }, [queryClient]);
 
   if (charactersPending) {
     return <div>Loading...</div>;
