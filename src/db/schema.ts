@@ -8,6 +8,7 @@ import {
 } from "drizzle-orm/pg-core";
 
 export type Resource = { max: number; current: number };
+export type Gold = { handfuls: number; bags: number; chests: number };
 
 export const character = pgTable("characters", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -24,13 +25,7 @@ export const character = pgTable("characters", {
   hope: jsonb("hope").$type<Resource>().notNull(),
   stress: jsonb("stress").$type<Resource>().notNull(),
   armourSlots: jsonb("armour_slots").$type<Resource>().notNull(),
-  gold: jsonb("gold")
-    .$type<{
-      handfuls: number;
-      bags: number;
-      chests: number;
-    }>()
-    .notNull(),
+  gold: jsonb("gold").$type<Gold>().notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at")
     .defaultNow()

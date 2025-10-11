@@ -1,4 +1,4 @@
-import type { Gold } from "@/schema";
+import type { Gold } from "@/db/schema";
 import { Input } from "./ui/input";
 
 export const GoldTracker = ({
