@@ -8,6 +8,7 @@ import { useMemo } from "react";
 import { getCampaign } from "@/actions";
 import { CampaignUsers } from "@/components/CampaignUsers";
 import { Characters } from "@/components/Characters";
+import { DiceRoller } from "@/components/DiceRoller";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -94,11 +95,9 @@ export default function CampaignPage() {
           </div>
         </TabsContent>
 
-        <TabsContent value="dice">
+        <TabsContent value="dice" forceMount>
           <div className="p-4 bg-accent/60 rounded-xl border border-amber-200">
-            <p className="text-stone-700">
-              Dice roll history and tools go here...
-            </p>
+            <DiceRoller campaignId={campaignId} />
           </div>
         </TabsContent>
 

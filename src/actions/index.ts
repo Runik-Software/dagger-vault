@@ -1,6 +1,6 @@
 "use server";
 
-import { and, eq, or } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { headers } from "next/headers";
 import { campaign, character, userCampaign } from "@/db/schema";
 import { auth } from "@/lib/auth";

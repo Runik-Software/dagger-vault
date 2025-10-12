@@ -1,10 +1,5 @@
 "use client";
 
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Plus } from "lucide-react";
-import Pusher from "pusher-js";
-import { useEffect, useState } from "react";
-import { toast } from "sonner";
 import {
   createCharacter,
   deleteCharacter,
@@ -14,7 +9,12 @@ import {
 import CharacterCard from "@/components/CharacterCard";
 import CharacterDialog from "@/components/CharacterDialog";
 import { Button } from "@/components/ui/button";
+import { createPusherClient } from "@/lib/pusher";
 import type { Character, EditCharacter } from "@/schema";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Plus } from "lucide-react";
+import { useEffect, useState } from "react";
+import { toast } from "sonner";
 
 export function Characters({ campaignId }: { campaignId: string }) {
   const queryClient = useQueryClient();
@@ -102,15 +102,7 @@ export function Characters({ campaignId }: { campaignId: string }) {
   };
 
   useEffect(() => {
-    const pusher = new Pusher(process.env.NEXT_PUBLIC_PUSHER_KEY!, {
-      cluster: process.env.NEXT_PUBLIC_PUSHER_CLUSTER!,
-      authEndpoint: "/api/pusher/auth",
-      auth: {
-        params: {
-          campaignId,
-        },
-      },
-    });
+    const pusher = createPusherClient(campaignId);
 
     const channel = pusher.subscribe(
       `private-campaign-${campaignId}-characters`,
