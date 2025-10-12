@@ -13,8 +13,9 @@ export async function POST(req: Request) {
 
   // optionally: ensure the user has access to that campaign
   // e.g. parse campaignId from channel_name and check DB here
+  console.log("Pusher body", body);
   const socketId = body.get("socket_id") as string;
-  const channelName = body.get("channelName") as string;
+  const channelName = body.get("channel_name") as string;
 
   if (!socketId || !channelName) {
     return new NextResponse("Bad request", { status: 400 });

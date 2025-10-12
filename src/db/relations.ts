@@ -17,6 +17,12 @@ export const relations = defineRelations(schema, (r) => ({
       to: r.character.campaignId,
     }),
   },
+  user: {
+    campaigns: r.many.campaign({
+      from: r.user.id.through(r.userCampaign.userId),
+      to: r.campaign.id.through(r.userCampaign.campaignId),
+    }),
+  },
   character: {
     campaign: r.one.campaign({
       from: r.character.campaignId,

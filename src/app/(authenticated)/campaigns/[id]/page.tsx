@@ -3,21 +3,41 @@
 import { useQuery } from "@tanstack/react-query";
 import { SquareArrowLeft } from "lucide-react";
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
+import { useMemo } from "react";
 import { getCampaign } from "@/actions";
+import { CampaignUsers } from "@/components/CampaignUsers";
 import { Characters } from "@/components/Characters";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { authClient } from "@/lib/auth-client";
 
 export default function CampaignPage() {
   const params = useParams();
+  const router = useRouter();
   const campaignId = params?.id as string;
+
+  const { data: session } = authClient.useSession();
 
   const { data: campaign, isPending } = useQuery({
     queryKey: ["campaign", campaignId],
-    queryFn: () => getCampaign(campaignId),
+    queryFn: async () => {
+      const campaign = await getCampaign(campaignId);
+      if (!campaign) {
+        router.replace("/unauthorised");
+      }
+      return campaign;
+    },
   });
+
+  const userOwnsCampaign = useMemo(() => {
+    if (!session || !campaign) {
+      return undefined;
+    }
+
+    return campaign.ownerUserId === session.user.id;
+  }, [campaign, session]);
 
   if (isPending) {
     return <div className="p-6">Loading...</div>;
@@ -34,7 +54,7 @@ export default function CampaignPage() {
           <SquareArrowLeft /> Back
         </Button>
       </Link>
-      <Card className="mb-6 bg-amber-50/80 border-amber-200 shadow-sm rounded-2xl">
+      <Card className="mb-6 bg-accent/80 border-amber-200 shadow-sm rounded-2xl">
         <CardContent className="p-6">
           <h1 className="text-3xl font-bold text-amber-900">{campaign.name}</h1>
           {campaign.description && (
@@ -57,35 +77,38 @@ export default function CampaignPage() {
           >
             Dice Rolls
           </TabsTrigger>
-          <TabsTrigger
-            value="users"
-            className="data-[state=active]:bg-amber-700 data-[state=active]:text-amber-50"
-          >
-            Users
-          </TabsTrigger>
+
+          {userOwnsCampaign && (
+            <TabsTrigger
+              value="users"
+              className="data-[state=active]:bg-amber-700 data-[state=active]:text-amber-50"
+            >
+              Users
+            </TabsTrigger>
+          )}
         </TabsList>
 
         <TabsContent value="characters">
-          <div className="p-4 bg-amber-50/60 rounded-xl border border-amber-200">
+          <div className="p-4 bg-accent/60 rounded-xl border border-amber-200">
             <Characters campaignId={campaignId} />
           </div>
         </TabsContent>
 
         <TabsContent value="dice">
-          <div className="p-4 bg-amber-50/60 rounded-xl border border-amber-200">
+          <div className="p-4 bg-accent/60 rounded-xl border border-amber-200">
             <p className="text-stone-700">
               Dice roll history and tools go here...
             </p>
           </div>
         </TabsContent>
 
-        <TabsContent value="users">
-          <div className="p-4 bg-amber-50/60 rounded-xl border border-amber-200">
-            <p className="text-stone-700">
-              Campaign user management goes here...
-            </p>
-          </div>
-        </TabsContent>
+        {userOwnsCampaign && (
+          <TabsContent value="users">
+            <div className="p-4 bg-accent/60 rounded-xl border border-amber-200">
+              <CampaignUsers id={campaign.id} />
+            </div>
+          </TabsContent>
+        )}
       </Tabs>
     </div>
   );
