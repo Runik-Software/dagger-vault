@@ -1,35 +1,49 @@
 "use client";
 
+import { useQuery } from "@tanstack/react-query";
 import { X } from "lucide-react";
 import type { Channel } from "pusher-js";
 import { useEffect, useRef, useState } from "react";
+import Select from "react-select";
+import { getCharacters } from "@/actions";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { createPusherClient } from "@/lib/pusher";
-import type { DiceRoll } from "@/schema";
+import type { Character, DiceRoll } from "@/schema";
 import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
 
 export function DiceRoller({ campaignId }: { campaignId: string }) {
   const [rolls, setRolls] = useState<DiceRoll[]>([]);
+  const [rollAsCharacter, setRollAsCharacter] = useState<Character | null>(
+    null,
+  );
   const rollChannel = useRef<Channel>(null);
+
+  const { data: characters } = useQuery({
+    queryKey: ["characters"],
+    queryFn: () => {
+      return getCharacters(campaignId);
+    },
+  });
 
   const rollDice = () => {
     const hopeDie = Math.floor(Math.random() * 12) + 1;
     const fearDie = Math.floor(Math.random() * 12) + 1;
 
-    const newRoll = { hopeDie, fearDie };
-    console.log("DOes it exist?", !!rollChannel.current);
+    const newRoll: DiceRoll = { hopeDie, fearDie, character: rollAsCharacter };
     rollChannel.current?.trigger("client-newRoll", newRoll);
     setRolls((prev) => [newRoll, ...prev]);
   };
 
-  const getMessageForDieRoll = ({ hopeDie, fearDie }: DiceRoll) => {
+  const getMessageForDieRoll = ({ hopeDie, fearDie, character }: DiceRoll) => {
     const total = hopeDie + fearDie;
-    let message = "";
+    let message = character
+      ? `${character.name} rolled a ${total} `
+      : `Rolled a ${total} `;
 
-    if (hopeDie > fearDie) message = `Rolled ${total} with Hope 🙏`;
-    else if (fearDie > hopeDie) message = `Rolled ${total} with Fear 💀`;
-    else message = `Rolled ${total} - Critical success 🏆`;
+    if (hopeDie > fearDie) message += "with Hope 🙏";
+    else if (fearDie > hopeDie) message += "with Fear 💀";
+    else message += "- Critical success 🏆";
 
     return message;
   };
@@ -52,10 +66,7 @@ export function DiceRoller({ campaignId }: { campaignId: string }) {
       `private-campaign-${campaignId}-rolls`,
     );
 
-    console.log("Subscribing to", `private-campaign-${campaignId}-rolls`);
-
     rollChannel.current.bind("client-newRoll", (roll: DiceRoll) => {
-      console.log("Got an event");
       setRolls((old) => [roll, ...old]);
     });
 
@@ -75,6 +86,15 @@ export function DiceRoller({ campaignId }: { campaignId: string }) {
           </CardTitle>
         </CardHeader>
         <CardContent>
+          <Select
+            className="mb-4"
+            placeholder="Roll as character"
+            isClearable
+            onChange={(c) => setRollAsCharacter(c)}
+            getOptionLabel={(c) => c.name}
+            getOptionValue={(c) => c.id}
+            options={characters ?? []}
+          />
           <Button onClick={rollDice} className="w-full mb-4">
             Roll!
           </Button>

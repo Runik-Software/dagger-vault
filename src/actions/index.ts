@@ -182,7 +182,6 @@ export const updateCharacter = async (id: string, data: Partial<Character>) => {
     .set(data)
     .where(eq(character.id, id))
     .returning();
-  console.log("Triggering character-updated event for id:", updated.id);
   pusher.trigger(
     `private-campaign-${updated.campaignId}-characters`,
     "update",

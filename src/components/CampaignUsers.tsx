@@ -55,7 +55,6 @@ export function CampaignUsers({ id }: { id: string }) {
 
   const addUserMutation = useMutation({
     mutationFn: ({ email }: z.infer<typeof addUserFormSchema>) => {
-      console.log("Email:", email);
       return addUserToCampaign({ campaignId: id, userEmail: email });
     },
     onSuccess: async () => {
@@ -84,7 +83,6 @@ export function CampaignUsers({ id }: { id: string }) {
   });
 
   const handleAddNewUserSubmit = (data: z.infer<typeof addUserFormSchema>) => {
-    console.log("submit", data);
     addUserMutation.mutate(data);
   };
 

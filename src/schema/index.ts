@@ -27,6 +27,7 @@ export type Character = typeof character.$inferSelect;
 export type EditCharacter = z.infer<typeof editCharacterSchema>;
 
 export type DiceRoll = {
+  character?: Character | null;
   hopeDie: number;
   fearDie: number;
 };
