@@ -105,7 +105,11 @@ export function Characters({ campaignId }: { campaignId: string }) {
     const pusher = new Pusher(process.env.NEXT_PUBLIC_PUSHER_KEY!, {
       cluster: process.env.NEXT_PUBLIC_PUSHER_CLUSTER!,
       authEndpoint: "/api/pusher/auth",
-      // auth: {},
+      auth: {
+        params: {
+          campaignId,
+        },
+      },
     });
 
     const channel = pusher.subscribe(

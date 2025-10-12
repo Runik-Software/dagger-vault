@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { canUserViewCampaign } from "@/actions";
 import { auth } from "@/lib/auth";
 import { pusher } from "@/lib/pusher";
 
@@ -16,9 +17,14 @@ export async function POST(req: Request) {
   console.log("Pusher body", body);
   const socketId = body.get("socket_id") as string;
   const channelName = body.get("channel_name") as string;
+  const campaignId = body.get("campaignId") as string;
 
   if (!socketId || !channelName) {
     return new NextResponse("Bad request", { status: 400 });
+  }
+
+  if (!(await canUserViewCampaign(campaignId, session.user.id))) {
+    return new NextResponse("Unauthorized", { status: 403 });
   }
 
   const authResponse = pusher.authorizeChannel(socketId, channelName);

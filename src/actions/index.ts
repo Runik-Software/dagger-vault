@@ -1,6 +1,6 @@
 "use server";
 
-import { and, eq } from "drizzle-orm";
+import { and, eq, or } from "drizzle-orm";
 import { headers } from "next/headers";
 import { campaign, character, userCampaign } from "@/db/schema";
 import { auth } from "@/lib/auth";
@@ -69,6 +69,19 @@ export const doesUserOwnCampaign = async (campaignId: string) => {
     where: { id: campaignId, ownerUserId: userId },
   });
   return Boolean(userOwnsCampaign);
+};
+
+export const canUserViewCampaign = async (
+  campaignId: string,
+  userId: string,
+) => {
+  const campaign = await db.query.campaign.findFirst({
+    where: {
+      id: campaignId,
+      OR: [{ ownerUserId: userId }, { users: { id: userId } }],
+    },
+  });
+  return Boolean(campaign);
 };
 
 export const addUserToCampaign = async ({
