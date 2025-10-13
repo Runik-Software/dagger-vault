@@ -118,6 +118,19 @@ export const addUserToCampaign = async ({
   await db.insert(userCampaign).values({ userId: userIdToAdd, campaignId });
 };
 
+export const updateCampaignFear = async (
+  campaignId: string,
+  newValue: number,
+) => {
+  await db
+    .update(campaign)
+    .set({ fear: newValue })
+    .where(eq(campaign.id, campaignId));
+  pusher.trigger(`private-campaign-${campaignId}-fear`, "update", {
+    newValue,
+  });
+};
+
 export const removeUserFromCampaign = async ({
   userId,
   campaignId,

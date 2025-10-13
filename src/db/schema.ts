@@ -1,5 +1,6 @@
 import {
   boolean,
+  integer,
   jsonb,
   pgTable,
   text,
@@ -41,6 +42,7 @@ export const campaign = pgTable("campaigns", {
   }),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   description: text("description"),
+  fear: integer("fear").notNull().default(0),
 });
 
 export const userCampaign = pgTable("user_campaign", {

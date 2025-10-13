@@ -6,11 +6,11 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useMemo } from "react";
 import { getCampaign } from "@/actions";
+import { CampaignOverview } from "@/components/CampaignOverview";
 import { CampaignUsers } from "@/components/CampaignUsers";
 import { Characters } from "@/components/Characters";
 import { DiceRoller } from "@/components/DiceRoller";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { authClient } from "@/lib/auth-client";
 
@@ -55,14 +55,7 @@ export default function CampaignPage() {
           <SquareArrowLeft /> Back
         </Button>
       </Link>
-      <Card className="mb-6 bg-accent/80 border-amber-200 shadow-sm rounded-2xl">
-        <CardContent className="p-6">
-          <h1 className="text-3xl font-bold text-amber-900">{campaign.name}</h1>
-          {campaign.description && (
-            <p className="mt-2 text-stone-700">{campaign.description}</p>
-          )}
-        </CardContent>
-      </Card>
+      <CampaignOverview campaign={campaign} />
 
       <Tabs defaultValue="characters" className="w-full">
         <TabsList className="bg-amber-100 border border-amber-200 rounded-xl p-1 mb-4">
@@ -104,7 +97,7 @@ export default function CampaignPage() {
         {userOwnsCampaign && (
           <TabsContent value="users">
             <div className="p-4 bg-accent/60 rounded-xl border border-amber-200">
-              <CampaignUsers id={campaign.id} />
+              <CampaignUsers id={campaignId} />
             </div>
           </TabsContent>
         )}

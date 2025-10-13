@@ -120,7 +120,7 @@ export function Characters({ campaignId }: { campaignId: string }) {
       });
     });
     return () => {
-      pusher.unsubscribe(`${campaignId}_characters`);
+      pusher.unsubscribe(`private-campaign-${campaignId}-characters`);
       pusher.disconnect();
     };
   }, [queryClient, campaignId]);
