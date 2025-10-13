@@ -1,5 +1,5 @@
 import z from "zod";
-import type { character } from "@/db/schema";
+import type { campaign, character } from "@/db/schema";
 
 const resourceSchema = z.object({
   current: z.number().min(0),
@@ -25,3 +25,10 @@ export const editCharacterSchema = z.object({
 
 export type Character = typeof character.$inferSelect;
 export type EditCharacter = z.infer<typeof editCharacterSchema>;
+export type Campaign = typeof campaign.$inferSelect;
+
+export type DiceRoll = {
+  character?: Character | null;
+  hopeDie: number;
+  fearDie: number;
+};

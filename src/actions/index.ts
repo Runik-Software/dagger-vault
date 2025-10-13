@@ -1,19 +1,12 @@
 "use server";
 
-import { asc, eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { headers } from "next/headers";
-import Pusher from "pusher";
 import { campaign, character, userCampaign } from "@/db/schema";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { pusher } from "@/lib/pusher";
 import type { Character, EditCharacter } from "@/schema";
-
-const pusher = new Pusher({
-  appId: process.env.PUSHER_APP_ID!,
-  key: process.env.PUSHER_KEY!,
-  secret: process.env.PUSHER_SECRET!,
-  cluster: process.env.PUSHER_CLUSTER!,
-});
 
 const getCurrentUserId = async () => {
   const session = await auth.api.getSession({
@@ -31,23 +24,167 @@ export const createCampaign = async (name: string, description?: string) => {
   const userId = await getCurrentUserId();
   const [created] = await db
     .insert(campaign)
-    .values({ name, description })
+    .values({ name, description, ownerUserId: userId })
     .returning();
-  await db.insert(userCampaign).values({ userId, campaignId: created.id });
   return created;
 };
 
-export const getCharacters = async (): Promise<Character[]> => {
-  return db.select().from(character).orderBy(asc(character.name));
+export const getCampaigns = async () => {
+  const userId = await getCurrentUserId();
+  return db.query.campaign.findMany({
+    where: {
+      OR: [{ ownerUserId: userId }, { users: { id: userId } }],
+    },
+  });
+};
+
+export const getCampaign = async (id: string) => {
+  const userId = await getCurrentUserId();
+  return db.query.campaign.findFirst({
+    where: {
+      OR: [{ ownerUserId: userId }, { users: { id: userId } }],
+      id,
+    },
+  });
+};
+
+export const getCampaignUsers = async (id: string) => {
+  const userId = await getCurrentUserId();
+  const userOwnsCampaign = await db.query.campaign.findFirst({
+    where: { id, ownerUserId: userId },
+  });
+  if (!userOwnsCampaign) {
+    throw new Error(`Current user does not own campaign with ID ${id}`);
+  }
+  return db.query.user.findMany({
+    where: {
+      campaigns: { id },
+    },
+  });
+};
+
+export const doesUserOwnCampaign = async (campaignId: string) => {
+  const userId = await getCurrentUserId();
+  const userOwnsCampaign = await db.query.campaign.findFirst({
+    where: { id: campaignId, ownerUserId: userId },
+  });
+  return Boolean(userOwnsCampaign);
+};
+
+export const canUserViewCampaign = async (
+  campaignId: string,
+  userId: string,
+) => {
+  const campaign = await db.query.campaign.findFirst({
+    where: {
+      id: campaignId,
+      OR: [{ ownerUserId: userId }, { users: { id: userId } }],
+    },
+  });
+  return Boolean(campaign);
+};
+
+export const addUserToCampaign = async ({
+  userEmail,
+  userId,
+  campaignId,
+}: {
+  userId?: string;
+  userEmail?: string;
+  campaignId: string;
+}) => {
+  if (!(await doesUserOwnCampaign(campaignId))) {
+    throw new Error("User does not own campaign");
+  }
+
+  if (!userId && !userEmail) {
+    throw new Error("One of email or ID must be provided");
+  }
+
+  let userIdToAdd: string;
+  if (userId) {
+    const user = await db.query.user.findFirst({ where: { id: userId } });
+    if (!user) {
+      throw new Error(`User with ID ${userId} was not found`);
+    }
+    userIdToAdd = userId;
+  } else {
+    const user = await db.query.user.findFirst({ where: { email: userEmail } });
+    if (!user) {
+      throw new Error(`User with email ${userEmail} does not exist`);
+    }
+    userIdToAdd = user.id;
+  }
+  await db.insert(userCampaign).values({ userId: userIdToAdd, campaignId });
+};
+
+export const updateCampaignFear = async (
+  campaignId: string,
+  newValue: number,
+) => {
+  await db
+    .update(campaign)
+    .set({ fear: newValue })
+    .where(eq(campaign.id, campaignId));
+  pusher.trigger(`private-campaign-${campaignId}-fear`, "update", {
+    newValue,
+  });
+};
+
+export const removeUserFromCampaign = async ({
+  userId,
+  campaignId,
+}: {
+  userId: string;
+  campaignId: string;
+}) => {
+  if (!(await doesUserOwnCampaign(campaignId))) {
+    throw new Error("User does not own campaign");
+  }
+
+  await db
+    .delete(userCampaign)
+    .where(
+      and(
+        eq(userCampaign.campaignId, campaignId),
+        eq(userCampaign.userId, userId),
+      ),
+    );
+};
+
+export const removeSelfFromCampaign = async (campaignId: string) => {
+  const userId = await getCurrentUserId();
+  await db
+    .delete(userCampaign)
+    .where(
+      and(
+        eq(userCampaign.campaignId, campaignId),
+        eq(userCampaign.userId, userId),
+      ),
+    );
+};
+
+export const getCharacters = async (
+  campaignId: string,
+): Promise<Character[]> => {
+  return db.query.character.findMany({
+    where: {
+      campaignId,
+    },
+    orderBy: {
+      name: "asc",
+    },
+  });
 };
 
 export const createCharacter = async (
+  campaignId: string,
   data: EditCharacter,
 ): Promise<Character> => {
   const userId = await getCurrentUserId();
   const [created] = await db
     .insert(character)
-    .values({ ...data, userId })
+    .values({ ...data, userId, campaignId })
     .returning();
   return created;
 };
@@ -58,8 +195,13 @@ export const updateCharacter = async (id: string, data: Partial<Character>) => {
     .set(data)
     .where(eq(character.id, id))
     .returning();
-  console.log("Triggering character-updated event for id:", updated.id);
-  pusher.trigger("characters", "character-updated", { character: updated });
+  pusher.trigger(
+    `private-campaign-${updated.campaignId}-characters`,
+    "update",
+    {
+      character: updated,
+    },
+  );
   return updated;
 };
 

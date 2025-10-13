@@ -32,12 +32,12 @@ export default function LandingPage() {
               </Link>
             </SignedOut>
             <SignedIn>
-              <Link href="/characters">
+              <Link href="/campaigns">
                 <Button
                   size="lg"
                   className="rounded-xl px-8 py-6 text-lg shadow-md"
                 >
-                  View Characters
+                  View Campaigns
                 </Button>
               </Link>
             </SignedIn>

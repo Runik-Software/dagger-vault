@@ -1,10 +1,5 @@
 "use client";
 
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Plus } from "lucide-react";
-import Pusher from "pusher-js";
-import { useEffect, useState } from "react";
-import { toast } from "sonner";
 import {
   createCharacter,
   deleteCharacter,
@@ -14,11 +9,14 @@ import {
 import CharacterCard from "@/components/CharacterCard";
 import CharacterDialog from "@/components/CharacterDialog";
 import { Button } from "@/components/ui/button";
+import { createPusherClient } from "@/lib/pusher";
 import type { Character, EditCharacter } from "@/schema";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Plus } from "lucide-react";
+import { useEffect, useState } from "react";
+import { toast } from "sonner";
 
-const CHANNEL_NAME = "character-updated";
-
-export default function Home() {
+export function Characters({ campaignId }: { campaignId: string }) {
   const queryClient = useQueryClient();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingCharacter, setEditingCharacter] = useState<Character | null>(
@@ -28,14 +26,14 @@ export default function Home() {
   const { data: characters, isPending: charactersPending } = useQuery({
     queryKey: ["characters"],
     queryFn: () => {
-      return getCharacters();
+      return getCharacters(campaignId);
     },
     initialData: [],
   });
 
   const addCharacterMutation = useMutation({
     mutationFn: (newChar: EditCharacter) => {
-      return createCharacter(newChar);
+      return createCharacter(campaignId, newChar);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["characters"] });
@@ -104,13 +102,13 @@ export default function Home() {
   };
 
   useEffect(() => {
-    const pusher = new Pusher(process.env.NEXT_PUBLIC_PUSHER_KEY!, {
-      cluster: process.env.NEXT_PUBLIC_PUSHER_CLUSTER!,
-    });
+    const pusher = createPusherClient(campaignId);
 
-    const channel = pusher.subscribe("characters");
+    const channel = pusher.subscribe(
+      `private-campaign-${campaignId}-characters`,
+    );
 
-    channel.bind(CHANNEL_NAME, ({ character }: { character: Character }) => {
+    channel.bind("update", ({ character }: { character: Character }) => {
       queryClient.setQueryData(["characters"], (old: Character[]) => {
         return old.map((c) => {
           if (c.id === character.id) {
@@ -122,10 +120,10 @@ export default function Home() {
       });
     });
     return () => {
-      pusher.unsubscribe("characters");
+      pusher.unsubscribe(`private-campaign-${campaignId}-characters`);
       pusher.disconnect();
     };
-  }, [queryClient]);
+  }, [queryClient, campaignId]);
 
   if (charactersPending) {
     return <div>Loading...</div>;

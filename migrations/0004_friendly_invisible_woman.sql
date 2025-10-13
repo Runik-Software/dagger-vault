@@ -1,0 +1,1 @@
+ALTER TABLE "campaigns" ADD COLUMN "fear" integer DEFAULT 0 NOT NULL;
