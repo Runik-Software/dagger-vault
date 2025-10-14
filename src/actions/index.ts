@@ -1,6 +1,6 @@
 "use server";
 
-import { and, eq } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { headers } from "next/headers";
 import { campaign, character, userCampaign } from "@/db/schema";
 import { auth } from "@/lib/auth";
@@ -121,14 +121,26 @@ export const addUserToCampaign = async ({
 export const updateCampaignFear = async (
   campaignId: string,
   newValue: number,
+  delta: boolean = false,
 ) => {
-  await db
-    .update(campaign)
-    .set({ fear: newValue })
-    .where(eq(campaign.id, campaignId));
-  pusher.trigger(`private-campaign-${campaignId}-fear`, "update", {
-    newValue,
-  });
+  if (delta) {
+    const [updated] = await db
+      .update(campaign)
+      .set({ fear: sql`LEAST(${campaign.fear} + ${newValue}, 12)` })
+      .where(eq(campaign.id, campaignId))
+      .returning();
+    pusher.trigger(`private-campaign-${campaignId}-fear`, "update", {
+      newValue: updated.fear,
+    });
+  } else {
+    await db
+      .update(campaign)
+      .set({ fear: newValue })
+      .where(eq(campaign.id, campaignId));
+    pusher.trigger(`private-campaign-${campaignId}-fear`, "update", {
+      newValue,
+    });
+  }
 };
 
 export const removeUserFromCampaign = async ({
@@ -192,7 +204,33 @@ export const createCharacter = async (
 export const updateCharacter = async (id: string, data: Partial<Character>) => {
   const [updated] = await db
     .update(character)
-    .set(data)
+    .set({
+      ...data,
+      hope: data.hope
+        ? {
+            current: Math.min(data.hope.current, data.hope.max),
+            max: data.hope.max,
+          }
+        : undefined,
+      stress: data.stress
+        ? {
+            current: Math.min(data.stress.current, data.stress.max),
+            max: data.stress.max,
+          }
+        : undefined,
+      armourSlots: data.armourSlots
+        ? {
+            current: Math.min(data.armourSlots.current, data.armourSlots.max),
+            max: data.armourSlots.max,
+          }
+        : undefined,
+      hitpoints: data.hitpoints
+        ? {
+            current: Math.min(data.hitpoints.current, data.hitpoints.max),
+            max: data.hitpoints.max,
+          }
+        : undefined,
+    })
     .where(eq(character.id, id))
     .returning();
   pusher.trigger(
@@ -203,6 +241,32 @@ export const updateCharacter = async (id: string, data: Partial<Character>) => {
     },
   );
   return updated;
+};
+
+export const applyCharacterDelta = async (
+  id: string,
+  data: { hope?: number; stress?: number },
+) => {
+  const toUpdate = await db.query.character.findFirst({ where: { id } });
+  if (!toUpdate) {
+    throw new Error("Character not found");
+  }
+  return await updateCharacter(id, {
+    hope: {
+      current: Math.min(
+        toUpdate.hope.current + (data.hope ?? 0),
+        toUpdate.hope.max,
+      ),
+      max: toUpdate.hope.max,
+    },
+    stress: {
+      current: Math.min(
+        toUpdate.stress.current + (data.stress ?? 0),
+        toUpdate.stress.max,
+      ),
+      max: toUpdate.stress.max,
+    },
+  });
 };
 
 export const deleteCharacter = async (id: string) => {

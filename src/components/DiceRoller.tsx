@@ -5,15 +5,22 @@ import { X } from "lucide-react";
 import type { Channel } from "pusher-js";
 import { useEffect, useRef, useState } from "react";
 import Select from "react-select";
-import { getCharacters } from "@/actions";
+import {
+  applyCharacterDelta,
+  getCharacters,
+  updateCampaignFear,
+} from "@/actions";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { createPusherClient } from "@/lib/pusher";
 import type { Character, DiceRoll } from "@/schema";
+import { Label } from "./ui/label";
+import { Switch } from "./ui/switch";
 import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
 
 export function DiceRoller({ campaignId }: { campaignId: string }) {
   const [rolls, setRolls] = useState<DiceRoll[]>([]);
+  const [autoApplyRolls, setAutoApplyRolls] = useState<boolean>(true);
   const [rollAsCharacter, setRollAsCharacter] = useState<Character | null>(
     null,
   );
@@ -26,12 +33,24 @@ export function DiceRoller({ campaignId }: { campaignId: string }) {
     },
   });
 
-  const rollDice = () => {
+  const rollDice = async () => {
     const hopeDie = Math.floor(Math.random() * 12) + 1;
     const fearDie = Math.floor(Math.random() * 12) + 1;
 
     const newRoll: DiceRoll = { hopeDie, fearDie, character: rollAsCharacter };
     rollChannel.current?.trigger("client-newRoll", newRoll);
+
+    if (rollAsCharacter && autoApplyRolls) {
+      if (hopeDie > fearDie) {
+        await applyCharacterDelta(rollAsCharacter.id, { hope: 1 });
+      }
+      if (fearDie > hopeDie) {
+        await updateCampaignFear(campaignId, 1, true);
+      }
+      if (hopeDie === fearDie) {
+        await applyCharacterDelta(rollAsCharacter.id, { hope: 1, stress: -1 });
+      }
+    }
     setRolls((prev) => [newRoll, ...prev]);
   };
 
@@ -79,22 +98,32 @@ export function DiceRoller({ campaignId }: { campaignId: string }) {
 
   return (
     <div className="flex flex-col items-center gap-4 p-6">
-      <Card className="w-full max-w-md text-center">
+      <Card className="w-full max-w-lg text-center">
         <CardHeader>
           <CardTitle className="text-2xl font-bold">
             Dice Roller (2d12)
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <Select
-            className="mb-4"
-            placeholder="Roll as character"
-            isClearable
-            onChange={(c) => setRollAsCharacter(c)}
-            getOptionLabel={(c) => c.name}
-            getOptionValue={(c) => c.id}
-            options={characters ?? []}
-          />
+          <div className="grid grid-cols-5 mb-4 gap-4 justify-around">
+            <Select
+              className="col-span-3"
+              placeholder="Roll as character"
+              isClearable
+              onChange={(c) => setRollAsCharacter(c)}
+              getOptionLabel={(c) => c.name}
+              getOptionValue={(c) => c.id}
+              options={characters ?? []}
+            />
+            <div className="col-span-2 flex items-center space-x-2">
+              <Switch
+                checked={autoApplyRolls}
+                onCheckedChange={setAutoApplyRolls}
+                id="apply-rolls"
+              />
+              <Label htmlFor="apply-rolls">Auto apply rolls</Label>
+            </div>
+          </div>
           <Button onClick={rollDice} className="w-full mb-4">
             Roll!
           </Button>
@@ -111,7 +140,7 @@ export function DiceRoller({ campaignId }: { campaignId: string }) {
         </CardContent>
       </Card>
 
-      <Card className="w-full max-w-md">
+      <Card className="w-full max-w-lg">
         <CardHeader>
           <CardTitle className="text-lg font-semibold">
             <Tooltip>
