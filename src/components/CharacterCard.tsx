@@ -45,7 +45,7 @@ export default function CharacterCard({
         <div className="flex items-start gap-4">
           <div className="w-20 h-20 rounded-md bg-muted flex items-center justify-center shrink-0 overflow-hidden border">
             {character.portraitUrl ? (
-              <Image
+              <img
                 src={character.portraitUrl}
                 alt={character.name}
                 width={20}

@@ -98,35 +98,37 @@ export function DiceRoller({ campaignId }: { campaignId: string }) {
 
   return (
     <div className="flex flex-col items-center gap-4 p-6">
-      <Card className="w-full max-w-lg text-center">
+      <Card className="w-full max-w-2xl text-center">
         <CardHeader>
           <CardTitle className="text-2xl font-bold">
             Dice Roller (2d12)
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-5 mb-4 gap-4 justify-around">
-            <Select
-              className="col-span-3"
-              placeholder="Roll as character"
-              isClearable
-              onChange={(c) => setRollAsCharacter(c)}
-              getOptionLabel={(c) => c.name}
-              getOptionValue={(c) => c.id}
-              options={characters ?? []}
-            />
-            <div className="col-span-2 flex items-center space-x-2">
-              <Switch
-                checked={autoApplyRolls}
-                onCheckedChange={setAutoApplyRolls}
-                id="apply-rolls"
-              />
-              <Label htmlFor="apply-rolls">Auto apply rolls</Label>
-            </div>
+          <Select
+            className="mb-4"
+            placeholder="Roll as character"
+            isClearable
+            onChange={(c) => setRollAsCharacter(c)}
+            getOptionLabel={(c) => c.name}
+            getOptionValue={(c) => c.id}
+            options={characters ?? []}
+          />
+          <div className="flex items-center gap-4 mb-4">
+            <Button onClick={rollDice} className="flex-1">
+              Roll!
+            </Button>
+            {rollAsCharacter && (
+              <div className="flex items-center space-x-2">
+                <Switch
+                  checked={autoApplyRolls}
+                  onCheckedChange={setAutoApplyRolls}
+                  id="apply-rolls"
+                />
+                <Label htmlFor="apply-rolls">Auto apply rolls</Label>
+              </div>
+            )}
           </div>
-          <Button onClick={rollDice} className="w-full mb-4">
-            Roll!
-          </Button>
           {rolls.length > 0 && (
             <div className="space-y-2">
               <div className="text-lg font-semibold">
@@ -140,7 +142,7 @@ export function DiceRoller({ campaignId }: { campaignId: string }) {
         </CardContent>
       </Card>
 
-      <Card className="w-full max-w-lg">
+      <Card className="w-full max-w-2xl">
         <CardHeader>
           <CardTitle className="text-lg font-semibold">
             <Tooltip>

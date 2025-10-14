@@ -1,5 +1,9 @@
 "use client";
 
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Plus } from "lucide-react";
+import { useEffect, useState } from "react";
+import { toast } from "sonner";
 import {
   createCharacter,
   deleteCharacter,
@@ -9,14 +13,12 @@ import {
 import CharacterCard from "@/components/CharacterCard";
 import CharacterDialog from "@/components/CharacterDialog";
 import { Button } from "@/components/ui/button";
+import { authClient } from "@/lib/auth-client";
 import { createPusherClient } from "@/lib/pusher";
 import type { Character, EditCharacter } from "@/schema";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Plus } from "lucide-react";
-import { useEffect, useState } from "react";
-import { toast } from "sonner";
 
 export function Characters({ campaignId }: { campaignId: string }) {
+  const { data: session } = authClient.useSession();
   const queryClient = useQueryClient();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingCharacter, setEditingCharacter] = useState<Character | null>(
@@ -108,22 +110,39 @@ export function Characters({ campaignId }: { campaignId: string }) {
       `private-campaign-${campaignId}-characters`,
     );
 
-    channel.bind("update", ({ character }: { character: Character }) => {
-      queryClient.setQueryData(["characters"], (old: Character[]) => {
-        return old.map((c) => {
-          if (c.id === character.id) {
-            return character;
-          } else {
-            return c;
-          }
-        });
-      });
-    });
+    channel.bind(
+      "update",
+      ({
+        character,
+        triggeredUserId,
+      }: {
+        character: Character;
+        triggeredUserId: string;
+      }) => {
+        if (session?.user.id !== triggeredUserId) {
+          console.log(
+            "Updating from socket event",
+            session?.user.id,
+            triggeredUserId,
+            session?.user.id === triggeredUserId,
+          );
+          queryClient.setQueryData(["characters"], (old: Character[]) => {
+            return old.map((c) => {
+              if (c.id === character.id) {
+                return character;
+              } else {
+                return c;
+              }
+            });
+          });
+        }
+      },
+    );
     return () => {
       pusher.unsubscribe(`private-campaign-${campaignId}-characters`);
       pusher.disconnect();
     };
-  }, [queryClient, campaignId]);
+  }, [queryClient, campaignId, session]);
 
   if (charactersPending) {
     return <div>Loading...</div>;

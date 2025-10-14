@@ -202,32 +202,49 @@ export const createCharacter = async (
 };
 
 export const updateCharacter = async (id: string, data: Partial<Character>) => {
+  const userId = await getCurrentUserId();
+  const toUpdate = await db.query.character.findFirst({ where: { id } });
+  if (!toUpdate) {
+    throw new Error("Unable to find character");
+  }
   const [updated] = await db
     .update(character)
     .set({
       ...data,
       hope: data.hope
         ? {
-            current: Math.min(data.hope.current, data.hope.max),
-            max: data.hope.max,
+            current: Math.min(
+              data.hope.current ?? toUpdate.hope.current,
+              data.hope.max ?? toUpdate.hope.max,
+            ),
+            max: data.hope.max ?? toUpdate.hope.max,
           }
         : undefined,
       stress: data.stress
         ? {
-            current: Math.min(data.stress.current, data.stress.max),
-            max: data.stress.max,
+            current: Math.min(
+              data.stress.current ?? toUpdate.stress.current,
+              data.stress.max ?? toUpdate.stress.max,
+            ),
+            max: data.stress.max ?? toUpdate.stress.max,
           }
         : undefined,
       armourSlots: data.armourSlots
         ? {
-            current: Math.min(data.armourSlots.current, data.armourSlots.max),
-            max: data.armourSlots.max,
+            current: Math.min(
+              data.armourSlots.current ?? toUpdate.armourSlots.current,
+              data.armourSlots.max ?? toUpdate.armourSlots.max,
+            ),
+            max: data.armourSlots.max ?? toUpdate.armourSlots.max,
           }
         : undefined,
       hitpoints: data.hitpoints
         ? {
-            current: Math.min(data.hitpoints.current, data.hitpoints.max),
-            max: data.hitpoints.max,
+            current: Math.min(
+              data.hitpoints.current ?? toUpdate.hitpoints.current,
+              data.hitpoints.max ?? toUpdate.hitpoints.max,
+            ),
+            max: data.hitpoints.max ?? toUpdate.hitpoints.max,
           }
         : undefined,
     })
@@ -238,6 +255,7 @@ export const updateCharacter = async (id: string, data: Partial<Character>) => {
     "update",
     {
       character: updated,
+      triggeredUserId: userId,
     },
   );
   return updated;
