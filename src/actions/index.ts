@@ -1,6 +1,6 @@
 "use server";
 
-import { and, eq, sql } from "drizzle-orm";
+import { and, asc, eq, sql } from "drizzle-orm";
 import { headers } from "next/headers";
 import { campaign, character, userCampaign } from "@/db/schema";
 import { auth } from "@/lib/auth";
@@ -181,13 +181,13 @@ export const removeSelfFromCampaign = async (campaignId: string) => {
 export const getCharacters = async (
   campaignId: string,
 ): Promise<Character[]> => {
+  const userId = await getCurrentUserId();
   return db.query.character.findMany({
     where: {
       campaignId,
     },
-    orderBy: {
-      name: "asc",
-    },
+    orderBy: (t) =>
+      sql`CASE WHEN ${t.userId} = ${userId} THEN 0 ELSE 1 END, ${t.name} ASC`,
   });
 };
 
