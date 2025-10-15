@@ -59,14 +59,19 @@ export function CampaignOverview({ campaign }: { campaign: Campaign }) {
         <div className="w-full flex items-center border-2 border-accent bg-destructive/10 rounded-2xl px-2">
           {userOwnsCampaign && (
             <div className="flex items-center">
-              <Button
-                disabled={campaign.fear <= 0}
-                className="rounded-full"
-                size="icon"
-                onClick={() => updateFearMutation.mutate(-1)}
-              >
-                <MinusCircle />
-              </Button>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    disabled={campaign.fear <= 0}
+                    className="rounded-full"
+                    size="icon"
+                    onClick={() => updateFearMutation.mutate(-1)}
+                  >
+                    <MinusCircle />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Remove Fear</TooltipContent>
+              </Tooltip>
             </div>
           )}
 
@@ -86,14 +91,19 @@ export function CampaignOverview({ campaign }: { campaign: Campaign }) {
 
           {userOwnsCampaign && (
             <div className="flex items-center">
-              <Button
-                disabled={campaign.fear >= 12}
-                size="icon"
-                className="rounded-full"
-                onClick={() => updateFearMutation.mutate(1)}
-              >
-                <PlusCircle />
-              </Button>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    disabled={campaign.fear >= 12}
+                    className="rounded-full"
+                    size="icon"
+                    onClick={() => updateFearMutation.mutate(1)}
+                  >
+                    <PlusCircle />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Add Fear</TooltipContent>
+              </Tooltip>
             </div>
           )}
         </div>

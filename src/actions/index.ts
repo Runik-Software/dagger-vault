@@ -1,6 +1,6 @@
 "use server";
 
-import { and, asc, eq, sql } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { headers } from "next/headers";
 import { campaign, character, userCampaign } from "@/db/schema";
 import { auth } from "@/lib/auth";
@@ -26,6 +26,7 @@ export const createCampaign = async (name: string, description?: string) => {
     .insert(campaign)
     .values({ name, description, ownerUserId: userId })
     .returning();
+  await addUserToCampaign({ userId, campaignId: created.id });
   return created;
 };
 
@@ -61,6 +62,34 @@ export const getCampaignUsers = async (id: string) => {
       campaigns: { id },
     },
   });
+};
+
+export const getCampaignUserDetails = async (campaignId: string) => {
+  const userId = await getCurrentUserId();
+
+  return db.query.userCampaign.findFirst({ where: { campaignId, userId } });
+};
+
+export const updateUserCampaign = async (
+  campaignId: string,
+  data: { notes?: string; images?: string[] },
+) => {
+  if (!data.images && !data.notes) {
+    throw new Error("At least one of notes or images must be provided");
+  }
+  const userId = await getCurrentUserId();
+  const [updated] = await db
+    .update(userCampaign)
+    .set(data)
+    .where(
+      and(
+        eq(userCampaign.campaignId, campaignId),
+        eq(userCampaign.userId, userId),
+      ),
+    )
+    .returning();
+
+  return updated;
 };
 
 export const doesUserOwnCampaign = async (campaignId: string) => {

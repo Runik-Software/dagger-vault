@@ -10,6 +10,7 @@ import { CampaignOverview } from "@/components/CampaignOverview";
 import { CampaignUsers } from "@/components/CampaignUsers";
 import { Characters } from "@/components/Characters";
 import { DiceRoller } from "@/components/DiceRoller";
+import { PersonalCampaignSpace } from "@/components/PersonalCampaignSpace";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { authClient } from "@/lib/auth-client";
@@ -71,6 +72,12 @@ export default function CampaignPage() {
           >
             Dice Rolls
           </TabsTrigger>
+          <TabsTrigger
+            value="personal-space"
+            className="data-[state=active]:bg-amber-700 data-[state=active]:text-amber-50"
+          >
+            Personal space
+          </TabsTrigger>
 
           {userOwnsCampaign && (
             <TabsTrigger
@@ -91,6 +98,12 @@ export default function CampaignPage() {
         <TabsContent value="dice" forceMount>
           <div className="p-4 bg-accent/60 rounded-xl border border-amber-200">
             <DiceRoller campaignId={campaignId} />
+          </div>
+        </TabsContent>
+
+        <TabsContent value="personal-space">
+          <div className="p-4 bg-accent/60 rounded-xl border border-amber-200">
+            <PersonalCampaignSpace campaignId={campaignId} />
           </div>
         </TabsContent>
 

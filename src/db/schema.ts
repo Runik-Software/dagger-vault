@@ -53,6 +53,8 @@ export const userCampaign = pgTable("user_campaign", {
   campaignId: uuid("campaign_id")
     .references(() => campaign.id, { onDelete: "cascade" })
     .notNull(),
+  notes: text("notes"),
+  images: jsonb("images").$type<string[]>(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at")
     .defaultNow()
