@@ -250,14 +250,21 @@ export const updateCharacter = async (id: string, data: Partial<Character>) => {
     })
     .where(eq(character.id, id))
     .returning();
-  pusher.trigger(
-    `private-campaign-${updated.campaignId}-characters`,
-    "update",
-    {
-      character: updated,
-      triggeredUserId: userId,
-    },
-  );
+
+  if (
+    Object.keys(data).some((key) =>
+      ["hope", "stress", "armourSlots", "hitpoints"].includes(key),
+    )
+  ) {
+    pusher.trigger(
+      `private-campaign-${updated.campaignId}-characters`,
+      "update",
+      {
+        character: updated,
+        triggeredUserId: userId,
+      },
+    );
+  }
   return updated;
 };
 

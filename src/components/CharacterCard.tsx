@@ -1,4 +1,11 @@
-import { ChevronDown, ChevronUp, Pencil, Trash2, User } from "lucide-react";
+import {
+  ChevronDown,
+  ChevronUp,
+  Pencil,
+  Save,
+  Trash2,
+  User,
+} from "lucide-react";
 import Image from "next/image";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -37,7 +44,10 @@ export default function CharacterCard({
   onEdit,
   onDelete,
 }: CharacterCardProps) {
-  const [notesOpen, setNotesOpen] = useState(false);
+  const [notesOpen, setNotesOpen] = useState<boolean>(false);
+  const [updatedNotes, setUpdatedNotes] = useState<string>(
+    `${character.notes}`,
+  );
 
   return (
     <Card className="overflow-hidden">
@@ -45,6 +55,7 @@ export default function CharacterCard({
         <div className="flex items-start gap-4">
           <div className="w-20 h-20 rounded-md bg-muted flex items-center justify-center shrink-0 overflow-hidden border">
             {character.portraitUrl ? (
+              // biome-ignore lint/performance/noImgElement: Need to bypass Next restriction
               <img
                 src={character.portraitUrl}
                 alt={character.name}
@@ -130,11 +141,28 @@ export default function CharacterCard({
           <CollapsibleContent className="mt-2">
             <Textarea
               placeholder="Add character notes, backstory, or important details..."
-              value={character.notes || ""}
-              onChange={(e) => onUpdate({ notes: e.target.value })}
+              value={updatedNotes}
+              onChange={(e) => setUpdatedNotes(e.target.value)}
               className="min-h-[100px] font-serif"
               data-testid={`input-notes-${character.id}`}
             />
+            <div className="flex justify-end mt-2">
+              <Button
+                className="mx-2"
+                disabled={updatedNotes === character.notes}
+                onClick={() => onUpdate({ notes: updatedNotes })}
+              >
+                <Save />
+                Save
+              </Button>
+              <Button
+                className=""
+                disabled={updatedNotes === character.notes}
+                onClick={() => setUpdatedNotes(`${character.notes}`)}
+              >
+                Reset
+              </Button>
+            </div>
           </CollapsibleContent>
         </Collapsible>
 

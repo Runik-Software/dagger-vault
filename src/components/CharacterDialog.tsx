@@ -18,6 +18,7 @@ import {
   type EditCharacter,
   editCharacterSchema,
 } from "@/schema";
+import CharacterFieldSet from "./CharacterFieldSet";
 import { Field, FieldError, FieldGroup, FieldLabel } from "./ui/field";
 
 interface CharacterDialogProps {
@@ -130,314 +131,49 @@ export default function CharacterDialog({
               )}
             />
 
-            <div className="grid grid-cols-2 gap-4">
-              <Controller
-                name="hitpoints.current"
-                control={form.control}
-                render={({ field, fieldState }) => (
-                  <Field
-                    data-invalid={fieldState.invalid}
-                    className="space-y-2"
-                  >
-                    <FieldLabel>Hit Points</FieldLabel>
-                    <Input
-                      {...field}
-                      onChange={(e) =>
-                        field.onChange(
-                          e.target.value === ""
-                            ? undefined
-                            : Number(e.target.value),
-                        )
-                      }
-                      aria-invalid={fieldState.invalid}
-                    />
-                    {fieldState.invalid && (
-                      <FieldError errors={[fieldState.error]} />
-                    )}
-                  </Field>
-                )}
-              />
+            <CharacterFieldSet
+              control={form.control}
+              pair={[
+                { name: "hitpoints.current", label: "Hit Points" },
+                { name: "hitpoints.max", label: "Max HP" },
+              ]}
+            />
 
-              <Controller
-                name="hitpoints.max"
-                control={form.control}
-                render={({ field, fieldState }) => (
-                  <Field
-                    data-invalid={fieldState.invalid}
-                    className="space-y-2"
-                  >
-                    <FieldLabel>Max HP</FieldLabel>
-                    <Input
-                      {...field}
-                      onChange={(e) =>
-                        field.onChange(
-                          e.target.value === ""
-                            ? undefined
-                            : Number(e.target.value),
-                        )
-                      }
-                      aria-invalid={fieldState.invalid}
-                    />
-                    {fieldState.invalid && (
-                      <FieldError errors={[fieldState.error]} />
-                    )}
-                  </Field>
-                )}
-              />
-            </div>
+            <CharacterFieldSet
+              control={form.control}
+              pair={[
+                { name: "hope.current", label: "Hope" },
+                { name: "hope.max", label: "Max Hope" },
+              ]}
+            />
 
-            <div className="grid grid-cols-2 gap-4">
-              <Controller
-                name="hope.current"
-                control={form.control}
-                render={({ field, fieldState }) => (
-                  <Field
-                    data-invalid={fieldState.invalid}
-                    className="space-y-2"
-                  >
-                    <FieldLabel>Hope</FieldLabel>
-                    <Input
-                      {...field}
-                      onChange={(e) =>
-                        field.onChange(
-                          e.target.value === ""
-                            ? undefined
-                            : Number(e.target.value),
-                        )
-                      }
-                      aria-invalid={fieldState.invalid}
-                    />
-                    {fieldState.invalid && (
-                      <FieldError errors={[fieldState.error]} />
-                    )}
-                  </Field>
-                )}
-              />
+            <CharacterFieldSet
+              control={form.control}
+              pair={[
+                { name: "stress.current", label: "Stress" },
+                { name: "stress.max", label: "Max Stress" },
+              ]}
+            />
 
-              <Controller
-                name="hope.max"
-                control={form.control}
-                render={({ field, fieldState }) => (
-                  <Field
-                    data-invalid={fieldState.invalid}
-                    className="space-y-2"
-                  >
-                    <FieldLabel>Max Hope</FieldLabel>
-                    <Input
-                      {...field}
-                      onChange={(e) =>
-                        field.onChange(
-                          e.target.value === ""
-                            ? undefined
-                            : Number(e.target.value),
-                        )
-                      }
-                      aria-invalid={fieldState.invalid}
-                    />
-                    {fieldState.invalid && (
-                      <FieldError errors={[fieldState.error]} />
-                    )}
-                  </Field>
-                )}
-              />
-            </div>
+            <CharacterFieldSet
+              control={form.control}
+              pair={[
+                { name: "armourSlots.current", label: "Armour Slots" },
+                { name: "armourSlots.max", label: "Max Armour Slots" },
+              ]}
+            />
 
-            <div className="grid grid-cols-2 gap-4">
-              <Controller
-                name="stress.current"
-                control={form.control}
-                render={({ field, fieldState }) => (
-                  <Field
-                    data-invalid={fieldState.invalid}
-                    className="space-y-2"
-                  >
-                    <FieldLabel>Stress</FieldLabel>
-                    <Input
-                      {...field}
-                      onChange={(e) =>
-                        field.onChange(
-                          e.target.value === ""
-                            ? undefined
-                            : Number(e.target.value),
-                        )
-                      }
-                      aria-invalid={fieldState.invalid}
-                    />
-                    {fieldState.invalid && (
-                      <FieldError errors={[fieldState.error]} />
-                    )}
-                  </Field>
-                )}
-              />
-
-              <Controller
-                name="stress.max"
-                control={form.control}
-                render={({ field, fieldState }) => (
-                  <Field
-                    data-invalid={fieldState.invalid}
-                    className="space-y-2"
-                  >
-                    <FieldLabel>Max Stress</FieldLabel>
-                    <Input
-                      {...field}
-                      onChange={(e) =>
-                        field.onChange(
-                          e.target.value === ""
-                            ? undefined
-                            : Number(e.target.value),
-                        )
-                      }
-                      aria-invalid={fieldState.invalid}
-                    />
-                    {fieldState.invalid && (
-                      <FieldError errors={[fieldState.error]} />
-                    )}
-                  </Field>
-                )}
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <Controller
-                name="armourSlots.current"
-                control={form.control}
-                render={({ field, fieldState }) => (
-                  <Field
-                    data-invalid={fieldState.invalid}
-                    className="space-y-2"
-                  >
-                    <FieldLabel>Armour Slots</FieldLabel>
-                    <Input
-                      {...field}
-                      onChange={(e) =>
-                        field.onChange(
-                          e.target.value === ""
-                            ? undefined
-                            : Number(e.target.value),
-                        )
-                      }
-                      aria-invalid={fieldState.invalid}
-                    />
-                    {fieldState.invalid && (
-                      <FieldError errors={[fieldState.error]} />
-                    )}
-                  </Field>
-                )}
-              />
-
-              <Controller
-                name="armourSlots.max"
-                control={form.control}
-                render={({ field, fieldState }) => (
-                  <Field
-                    data-invalid={fieldState.invalid}
-                    className="space-y-2"
-                  >
-                    <FieldLabel>Max Armour Slots</FieldLabel>
-                    <Input
-                      {...field}
-                      onChange={(e) =>
-                        field.onChange(
-                          e.target.value === ""
-                            ? undefined
-                            : Number(e.target.value),
-                        )
-                      }
-                      aria-invalid={fieldState.invalid}
-                    />
-                    {fieldState.invalid && (
-                      <FieldError errors={[fieldState.error]} />
-                    )}
-                  </Field>
-                )}
-              />
-            </div>
-
-            <div className="space-y-2">
+            <div>
               <Label className="font-serif">Gold</Label>
-              <div className="grid grid-cols-3 gap-2">
-                <Controller
-                  name="gold.handfuls"
-                  control={form.control}
-                  render={({ field, fieldState }) => (
-                    <Field
-                      data-invalid={fieldState.invalid}
-                      className="space-y-1"
-                    >
-                      <FieldLabel>Handfuls</FieldLabel>
-                      <Input
-                        {...field}
-                        onChange={(e) =>
-                          field.onChange(
-                            e.target.value === ""
-                              ? undefined
-                              : Number(e.target.value),
-                          )
-                        }
-                        aria-invalid={fieldState.invalid}
-                      />
-                      {fieldState.invalid && (
-                        <FieldError errors={[fieldState.error]} />
-                      )}
-                    </Field>
-                  )}
-                />
-
-                <Controller
-                  name="gold.bags"
-                  control={form.control}
-                  render={({ field, fieldState }) => (
-                    <Field
-                      data-invalid={fieldState.invalid}
-                      className="space-y-1"
-                    >
-                      <FieldLabel>Bags</FieldLabel>
-                      <Input
-                        {...field}
-                        onChange={(e) =>
-                          field.onChange(
-                            e.target.value === ""
-                              ? undefined
-                              : Number(e.target.value),
-                          )
-                        }
-                        aria-invalid={fieldState.invalid}
-                      />
-                      {fieldState.invalid && (
-                        <FieldError errors={[fieldState.error]} />
-                      )}
-                    </Field>
-                  )}
-                />
-
-                <Controller
-                  name="gold.chests"
-                  control={form.control}
-                  render={({ field, fieldState }) => (
-                    <Field
-                      data-invalid={fieldState.invalid}
-                      className="space-y-1"
-                    >
-                      <FieldLabel>Chests</FieldLabel>
-                      <Input
-                        {...field}
-                        onChange={(e) =>
-                          field.onChange(
-                            e.target.value === ""
-                              ? undefined
-                              : Number(e.target.value),
-                          )
-                        }
-                        aria-invalid={fieldState.invalid}
-                      />
-                      {fieldState.invalid && (
-                        <FieldError errors={[fieldState.error]} />
-                      )}
-                    </Field>
-                  )}
-                />
-              </div>
+              <CharacterFieldSet
+                control={form.control}
+                group={[
+                  { name: "gold.handfuls", label: "Handfuls" },
+                  { name: "gold.bags", label: "Bags" },
+                  { name: "gold.chests", label: "Chests" },
+                ]}
+                gridClassName="space-y-2"
+              />
             </div>
           </FieldGroup>
 
