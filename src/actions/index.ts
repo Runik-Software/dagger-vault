@@ -6,7 +6,7 @@ import { campaign, character, userCampaign } from "@/db/schema";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { pusher } from "@/lib/pusher";
-import type { Character, EditCharacter } from "@/schema";
+import type { Campaign, Character, EditCharacter } from "@/schema";
 
 const getCurrentUserId = async () => {
   const session = await auth.api.getSession({
@@ -123,24 +123,26 @@ export const updateCampaignFear = async (
   newValue: number,
   delta: boolean = false,
 ) => {
+  let updatedCampaign: Campaign;
   if (delta) {
     const [updated] = await db
       .update(campaign)
       .set({ fear: sql`LEAST(${campaign.fear} + ${newValue}, 12)` })
       .where(eq(campaign.id, campaignId))
       .returning();
-    pusher.trigger(`private-campaign-${campaignId}-fear`, "update", {
-      newValue: updated.fear,
-    });
+    updatedCampaign = updated;
   } else {
-    await db
+    const [updated] = await db
       .update(campaign)
       .set({ fear: newValue })
-      .where(eq(campaign.id, campaignId));
-    pusher.trigger(`private-campaign-${campaignId}-fear`, "update", {
-      newValue,
-    });
+      .where(eq(campaign.id, campaignId))
+      .returning();
+    updatedCampaign = updated;
   }
+  pusher.trigger(`private-campaign-${campaignId}-fear`, "update", {
+    newValue: updatedCampaign.fear,
+  });
+  return updatedCampaign;
 };
 
 export const removeUserFromCampaign = async ({
