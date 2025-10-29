@@ -3,8 +3,9 @@
 import { useQuery } from "@tanstack/react-query";
 import { X } from "lucide-react";
 import type { Channel } from "pusher-js";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Select from "react-select";
+import { toast } from "sonner";
 import {
   applyCharacterDelta,
   getCharacters,
@@ -12,19 +13,39 @@ import {
 } from "@/actions";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { authClient } from "@/lib/auth-client";
+import { dayjs } from "@/lib/dayjs";
 import { createPusherClient } from "@/lib/pusher";
 import type { Character, DiceRoll } from "@/schema";
+import { Item, ItemContent, ItemDescription, ItemTitle } from "./ui/item";
 import { Label } from "./ui/label";
 import { Switch } from "./ui/switch";
 import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
 
 export function DiceRoller({ campaignId }: { campaignId: string }) {
+  const { data: session } = authClient.useSession();
   const [rolls, setRolls] = useState<DiceRoll[]>([]);
   const [autoApplyRolls, setAutoApplyRolls] = useState<boolean>(true);
   const [rollAsCharacter, setRollAsCharacter] = useState<Character | null>(
     null,
   );
+  const [showDiceRollPopups, setShowDiceRollPopups] = useState<boolean | null>(
+    null,
+  );
   const rollChannel = useRef<Channel>(null);
+
+  const showDiceKey = `${campaignId}_showDiceRollPopups`;
+  const autoApplyKey = `${campaignId}_autoEnableApplyDiceRolls`;
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const storedShowDice = localStorage.getItem(showDiceKey);
+    const storedAutoApply = localStorage.getItem(autoApplyKey);
+
+    setShowDiceRollPopups(storedShowDice ? storedShowDice === "true" : true);
+    setAutoApplyRolls(storedAutoApply ? storedAutoApply === "true" : true);
+  }, [autoApplyKey, showDiceKey]);
 
   const { data: characters } = useQuery({
     queryKey: ["characters"],
@@ -37,35 +58,72 @@ export function DiceRoller({ campaignId }: { campaignId: string }) {
     const hopeDie = Math.floor(Math.random() * 12) + 1;
     const fearDie = Math.floor(Math.random() * 12) + 1;
 
-    const newRoll: DiceRoll = { hopeDie, fearDie, character: rollAsCharacter };
+    const newRoll: DiceRoll = {
+      hopeDie,
+      fearDie,
+      character: rollAsCharacter,
+      user: session?.user?.name || "Unknown",
+      rollType:
+        hopeDie === fearDie ? "critical" : hopeDie > fearDie ? "hope" : "fear",
+      timestamp: new Date().toISOString(),
+    };
     rollChannel.current?.trigger("client-newRoll", newRoll);
 
+    if (newRoll.rollType === "fear") {
+      await updateCampaignFear(campaignId, 1, true);
+    }
+    let description: string | undefined;
     if (rollAsCharacter && autoApplyRolls) {
-      if (hopeDie > fearDie) {
+      description = "Roll applied automatically";
+      if (newRoll.rollType === "hope") {
         await applyCharacterDelta(rollAsCharacter.id, { hope: 1 });
       }
-      if (fearDie > hopeDie) {
-        await updateCampaignFear(campaignId, 1, true);
+      if (newRoll.rollType === "critical") {
+        await applyCharacterDelta(rollAsCharacter.id, {
+          hope: 1,
+          stress: -1,
+        });
       }
-      if (hopeDie === fearDie) {
-        await applyCharacterDelta(rollAsCharacter.id, { hope: 1, stress: -1 });
+    } else {
+      if (newRoll.rollType === "hope") {
+        description = "Increase Hope by 1 using the character sheet controls";
       }
+      if (newRoll.rollType === "fear") {
+        description = "The GM gains 1 Fear for the campaign";
+      }
+      if (newRoll.rollType === "critical") {
+        description =
+          "Increase Hope by 1 and decrease Stress by 1 using the character sheet controls";
+      }
+    }
+
+    if (showDiceRollPopups) {
+      toast(getMessageForDieRoll({ ...newRoll, user: "You" }), {
+        description,
+        richColors: false,
+        classNames: {
+          description: "!text-popover-foreground/90",
+        },
+      });
     }
     setRolls((prev) => [newRoll, ...prev]);
   };
 
-  const getMessageForDieRoll = ({ hopeDie, fearDie, character }: DiceRoll) => {
-    const total = hopeDie + fearDie;
-    let message = character
-      ? `${character.name} rolled a ${total} `
-      : `Rolled a ${total} `;
+  const getMessageForDieRoll = useCallback(
+    ({ hopeDie, fearDie, character, user, rollType }: DiceRoll) => {
+      const total = hopeDie + fearDie;
+      let message = character
+        ? `${character.name} (${user}) rolled a ${total} `
+        : `${user} rolled a ${total} `;
 
-    if (hopeDie > fearDie) message += "with Hope 🙏";
-    else if (fearDie > hopeDie) message += "with Fear 💀";
-    else message += "- Critical success 🏆";
+      if (rollType === "hope") message += "with Hope 🙏";
+      else if (rollType === "fear") message += "with Fear 💀";
+      else message += "- Critical success 🏆";
 
-    return message;
-  };
+      return message;
+    },
+    [],
+  );
 
   const clearRollHistory = () => {
     if (rolls[0]) {
@@ -86,6 +144,11 @@ export function DiceRoller({ campaignId }: { campaignId: string }) {
     );
 
     rollChannel.current.bind("client-newRoll", (roll: DiceRoll) => {
+      if (showDiceRollPopups) {
+        toast(getMessageForDieRoll(roll), {
+          richColors: false,
+        });
+      }
       setRolls((old) => [roll, ...old]);
     });
 
@@ -94,7 +157,7 @@ export function DiceRoller({ campaignId }: { campaignId: string }) {
       pusher.unsubscribe(`private-campaign-${campaignId}-rolls`);
       pusher.disconnect();
     };
-  }, [campaignId]);
+  }, [campaignId, getMessageForDieRoll, showDiceRollPopups]);
 
   return (
     <div className="flex flex-col items-center gap-4 p-6">
@@ -157,14 +220,22 @@ export function DiceRoller({ campaignId }: { campaignId: string }) {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <ul className="space-y-1 text-sm">
+          <div className="space-y-2">
             {rolls.slice(1).map((r, i) => (
-              // biome-ignore lint/suspicious/noArrayIndexKey: Indes is fine
-              <li key={i}>
-                {getMessageForDieRoll(r)} (Hope: {r.hopeDie}, Fear: {r.fearDie})
-              </li>
+              // biome-ignore lint/suspicious/noArrayIndexKey: Not that important here
+              <Item key={i} variant="outline">
+                <ItemContent>
+                  <ItemTitle>
+                    {getMessageForDieRoll(r)} (Hope: {r.hopeDie}, Fear:{" "}
+                    {r.fearDie})
+                  </ItemTitle>
+                  <ItemDescription>
+                    {dayjs(r.timestamp).fromNow()}
+                  </ItemDescription>
+                </ItemContent>
+              </Item>
             ))}
-          </ul>
+          </div>
         </CardContent>
       </Card>
     </div>

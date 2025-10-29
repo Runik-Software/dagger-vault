@@ -28,7 +28,10 @@ export type EditCharacter = z.infer<typeof editCharacterSchema>;
 export type Campaign = typeof campaign.$inferSelect;
 
 export type DiceRoll = {
+  user: string;
   character?: Character | null;
   hopeDie: number;
   fearDie: number;
+  rollType: "hope" | "fear" | "critical";
+  timestamp: string;
 };

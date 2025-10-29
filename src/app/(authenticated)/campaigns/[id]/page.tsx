@@ -7,6 +7,7 @@ import { useParams, useRouter } from "next/navigation";
 import { useMemo } from "react";
 import { getCampaign } from "@/actions";
 import { CampaignOverview } from "@/components/CampaignOverview";
+import CampaignUserSettings from "@/components/CampaignUserSettings";
 import { CampaignUsers } from "@/components/CampaignUsers";
 import { Characters } from "@/components/Characters";
 import { DiceRoller } from "@/components/DiceRoller";
@@ -59,35 +60,48 @@ export default function CampaignPage() {
       <CampaignOverview campaign={campaign} />
 
       <Tabs defaultValue="characters" className="w-full">
-        <TabsList className="bg-amber-100 border border-amber-200 rounded-xl p-1 mb-4">
-          <TabsTrigger
-            value="characters"
-            className="data-[state=active]:bg-amber-700 data-[state=active]:text-amber-50"
-          >
-            Characters
-          </TabsTrigger>
-          <TabsTrigger
-            value="dice"
-            className="data-[state=active]:bg-amber-700 data-[state=active]:text-amber-50"
-          >
-            Dice Rolls
-          </TabsTrigger>
-          <TabsTrigger
-            value="personal-space"
-            className="data-[state=active]:bg-amber-700 data-[state=active]:text-amber-50"
-          >
-            Personal space
-          </TabsTrigger>
-
-          {userOwnsCampaign && (
+        {/* If the tab list is too long, allow items to wrap onto the next row
+            instead of scrolling horizontally. We add `flex-wrap` on the
+            TabsList and keep each trigger as `flex-none` so items keep their
+            natural width and flow to the next line. */}
+        <div className="mb-4">
+          <TabsList className="bg-amber-100 border border-amber-200 rounded-xl p-1 flex flex-wrap gap-1 !h-auto w-full">
             <TabsTrigger
-              value="users"
-              className="data-[state=active]:bg-amber-700 data-[state=active]:text-amber-50"
+              value="characters"
+              className="!flex-none !h-auto data-[state=active]:bg-amber-700 data-[state=active]:text-amber-50"
             >
-              Users
+              Characters
             </TabsTrigger>
-          )}
-        </TabsList>
+            <TabsTrigger
+              value="dice"
+              className="!flex-none !h-auto data-[state=active]:bg-amber-700 data-[state=active]:text-amber-50"
+            >
+              Dice Rolls
+            </TabsTrigger>
+            <TabsTrigger
+              value="personal-space"
+              className="!flex-none !h-auto data-[state=active]:bg-amber-700 data-[state=active]:text-amber-50"
+            >
+              Personal space
+            </TabsTrigger>
+
+            <TabsTrigger
+              value="settings"
+              className="!flex-none !h-auto data-[state=active]:bg-amber-700 data-[state=active]:text-amber-50"
+            >
+              Settings
+            </TabsTrigger>
+
+            {userOwnsCampaign && (
+              <TabsTrigger
+                value="users"
+                className="!flex-none !h-auto data-[state=active]:bg-amber-700 data-[state=active]:text-amber-50"
+              >
+                Users
+              </TabsTrigger>
+            )}
+          </TabsList>
+        </div>
 
         <TabsContent value="characters">
           <div className="p-4 bg-accent/60 rounded-xl border border-amber-200">
@@ -104,6 +118,12 @@ export default function CampaignPage() {
         <TabsContent value="personal-space">
           <div className="p-4 bg-accent/60 rounded-xl border border-amber-200">
             <PersonalCampaignSpace campaignId={campaignId} />
+          </div>
+        </TabsContent>
+
+        <TabsContent value="settings">
+          <div className="p-4 bg-accent/60 rounded-xl border border-amber-200">
+            <CampaignUserSettings campaignId={campaignId} />
           </div>
         </TabsContent>
 

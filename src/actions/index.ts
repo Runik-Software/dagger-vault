@@ -168,6 +168,8 @@ export const updateCampaignFear = async (
       .returning();
     updatedCampaign = updated;
   }
+
+  console.log("Triggering fear update via Pusher", updatedCampaign.fear);
   pusher.trigger(`private-campaign-${campaignId}-fear`, "update", {
     newValue: updatedCampaign.fear,
   });

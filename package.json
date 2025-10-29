@@ -31,6 +31,7 @@
     "better-auth": "^1.3.27",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "dayjs": "^1.11.18",
     "drizzle-orm": "^1.0.0-beta.1-ac4ce44",
     "drizzle-zod": "^0.8.3-ac4ce44",
     "lodash": "^4.17.21",

@@ -65,7 +65,7 @@ export default function RootLayout({
 
           {children}
         </Providers>
-        <Toaster richColors></Toaster>
+        <Toaster richColors expand visibleToasts={9}></Toaster>
       </body>
     </html>
   );

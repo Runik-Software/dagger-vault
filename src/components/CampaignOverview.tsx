@@ -25,20 +25,19 @@ export function CampaignOverview({ campaign }: { campaign: Campaign }) {
     const channel = pusher.subscribe(`private-campaign-${campaign.id}-fear`);
 
     channel.bind("update", ({ newValue }: { newValue: number }) => {
-      if (!userOwnsCampaign) {
-        queryClient.setQueryData(["campaign", campaign.id], (old: Campaign) => {
-          return {
-            ...old,
-            fear: newValue,
-          };
-        });
-      }
+      console.log("Received fear update via Pusher", newValue);
+      queryClient.setQueryData(["campaign", campaign.id], (old: Campaign) => {
+        return {
+          ...old,
+          fear: newValue,
+        };
+      });
     });
     return () => {
       pusher.unsubscribe(`private-campaign-${campaign.id}-fear`);
       pusher.disconnect();
     };
-  }, [queryClient, campaign.id, userOwnsCampaign]);
+  }, [queryClient, campaign.id]);
 
   const updateFearMutation = useMutation({
     mutationFn: (modifier: number) => {
@@ -75,18 +74,19 @@ export function CampaignOverview({ campaign }: { campaign: Campaign }) {
             </div>
           )}
 
-          <div className="flex-1 flex justify-around items-center gap-1">
-            {new Array(campaign.fear).fill("").map((_, i) => (
-              <Skull
-                // biome-ignore lint/suspicious/noArrayIndexKey: Just an index
-                key={`filled-${i}`}
-                className="bg-destructive text-gray-800 rounded-full"
-              />
-            ))}
-            {new Array(12 - campaign.fear).fill("").map((_, i) => (
-              // biome-ignore lint/suspicious/noArrayIndexKey: Just an index
-              <Skull key={`empty-${i}`} />
-            ))}
+          <div className="flex-1">
+            <div className="grid grid-cols-6 sm:grid-cols-12 gap-1 justify-items-center">
+              {Array.from({ length: 12 }).map((_, i) => {
+                const filled = i < campaign.fear;
+                return (
+                  <Skull
+                    // biome-ignore lint/suspicious/noArrayIndexKey: Just an index
+                    key={`skull-${i}`}
+                    className={`${filled ? "bg-destructive text-gray-800 rounded-full" : ""}`}
+                  />
+                );
+              })}
+            </div>
           </div>
 
           {userOwnsCampaign && (
