@@ -27,7 +27,7 @@ export type Character = typeof character.$inferSelect;
 export type EditCharacter = z.infer<typeof editCharacterSchema>;
 export type Campaign = typeof campaign.$inferSelect;
 
-export type DiceRoll = {
+export type DualityDiceRoll = {
   user: string;
   character?: Character | null;
   hopeDie: number;
@@ -35,3 +35,32 @@ export type DiceRoll = {
   rollType: "hope" | "fear" | "critical";
   timestamp: string;
 };
+
+export const DICE_VALUES = [4, 6, 8, 10, 12, 20] as const;
+export type DiceValue = (typeof DICE_VALUES)[number];
+
+export type DiceRoll = {
+  dieType: 4 | 6 | 8 | 10 | 12 | 20;
+  results: number[];
+};
+
+export type RollResult = Record<DiceValue, number[]>;
+
+export type PoolDiceRoll = {
+  user: string;
+  character?: Character | null;
+  results: RollResult;
+  total: number;
+  rollType: "pool";
+  timestamp: string;
+};
+
+export type AnyDiceRoll = DualityDiceRoll | PoolDiceRoll;
+
+export function isDualityDiceRoll(roll: AnyDiceRoll): roll is DualityDiceRoll {
+  return (roll as DualityDiceRoll).hopeDie !== undefined;
+}
+
+export function isPoolDiceRoll(roll: AnyDiceRoll): roll is PoolDiceRoll {
+  return (roll as PoolDiceRoll).rollType === "pool";
+}
