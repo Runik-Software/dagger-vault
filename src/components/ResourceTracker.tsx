@@ -6,13 +6,11 @@ import { Input } from "./ui/input";
 import { Progress } from "./ui/progress";
 
 export const ResourceTracker = ({
-  character,
   label,
   field: { current, max },
   name,
   onUpdate,
 }: {
-  character: Character;
   label: string;
   field: Resource;
   name: keyof Character;
@@ -20,12 +18,12 @@ export const ResourceTracker = ({
 }) => {
   const updateResource = (delta: number) => {
     let newValue = current + delta;
+    console.log({ newValue, current, delta, max });
     if (max !== undefined) {
       newValue = Math.max(0, Math.min(newValue, max));
     } else {
       newValue = Math.max(0, newValue);
     }
-    (character[name] as Resource).current = newValue;
     onUpdate({ [name]: { max, current: newValue } });
   };
 

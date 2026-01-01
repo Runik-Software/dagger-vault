@@ -167,28 +167,24 @@ export default function CharacterCard({
 
         <div className="space-y-4">
           <ResourceTracker
-            character={character}
             label="Hit Points"
             field={character.hitpoints}
             name="hitpoints"
             onUpdate={onUpdate}
           />
           <ResourceTracker
-            character={character}
             label="Hope"
             field={character.hope}
             name="hope"
             onUpdate={onUpdate}
           />
           <ResourceTracker
-            character={character}
             label="Stress"
             field={character.stress}
             name="stress"
             onUpdate={onUpdate}
           />
           <ResourceTracker
-            character={character}
             label="Armour Slots"
             field={character.armourSlots}
             name="armourSlots"

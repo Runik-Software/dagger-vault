@@ -1,8 +1,9 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { debounce } from "lodash";
 import { Plus } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import {
   createCharacter,
@@ -53,18 +54,11 @@ export function Characters({ campaignId }: { campaignId: string }) {
     }) => {
       return await updateCharacter(id, data);
     },
-    onSuccess: (data) => {
-      queryClient.setQueryData(["characters"], (old: Character[]) => {
-        return old.map((c) => {
-          if (c.id === data.id) {
-            return data;
-          } else {
-            return c;
-          }
-        });
-      });
-    },
   });
+
+  const updateCharacterDebounced = useRef(
+    debounce(updateCharacterMutation.mutate, 300),
+  );
 
   const deleteCharacterMutation = useMutation({
     mutationFn: async (id: string) => {
@@ -77,7 +71,16 @@ export function Characters({ campaignId }: { campaignId: string }) {
   });
 
   const handleUpdate = (id: string, updates: Partial<Character>) => {
-    updateCharacterMutation.mutate({ id, data: updates });
+    queryClient.setQueryData(["characters"], (old: Character[]) => {
+      return old.map((c) => {
+        if (c.id === id) {
+          return { ...c, ...updates };
+        } else {
+          return c;
+        }
+      });
+    });
+    updateCharacterDebounced.current({ id, data: updates });
   };
 
   const handleEdit = (character: Character) => {
@@ -102,6 +105,12 @@ export function Characters({ campaignId }: { campaignId: string }) {
       handleUpdate(editingCharacter.id, character);
     }
   };
+
+  useEffect(() => {
+    return () => {
+      updateCharacterDebounced.current?.cancel();
+    };
+  }, []);
 
   useEffect(() => {
     const pusher = createPusherClient(campaignId);
