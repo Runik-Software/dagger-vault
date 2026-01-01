@@ -18,7 +18,6 @@ export const ResourceTracker = ({
 }) => {
   const updateResource = (delta: number) => {
     let newValue = current + delta;
-    console.log({ newValue, current, delta, max });
     if (max !== undefined) {
       newValue = Math.max(0, Math.min(newValue, max));
     } else {

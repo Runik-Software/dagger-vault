@@ -1,7 +1,7 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { debounce } from "lodash";
+import debounce from "lodash/debounce";
 import { Plus } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
@@ -54,10 +54,16 @@ export function Characters({ campaignId }: { campaignId: string }) {
     }) => {
       return await updateCharacter(id, data);
     },
+    onError: () => {
+      queryClient.invalidateQueries({ queryKey: ["characters"] });
+      toast.error("Failed to update character");
+    },
   });
 
   const updateCharacterDebounced = useRef(
-    debounce(updateCharacterMutation.mutate, 300),
+    debounce((args: { id: string; data: Partial<Character> }) => {
+      updateCharacterMutation.mutate(args);
+    }, 300),
   );
 
   const deleteCharacterMutation = useMutation({
