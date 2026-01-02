@@ -60,10 +60,8 @@ export function Characters({ campaignId }: { campaignId: string }) {
     },
   });
 
-  const updateCharacterDebounced = useRef(
-    debounce((args: { id: string; data: Partial<Character> }) => {
-      updateCharacterMutation.mutate(args);
-    }, 300),
+  const debouncedUpdatesRef = useRef(
+    new Map<string, ReturnType<typeof debounce>>(),
   );
 
   const deleteCharacterMutation = useMutation({
@@ -86,7 +84,14 @@ export function Characters({ campaignId }: { campaignId: string }) {
         }
       });
     });
-    updateCharacterDebounced.current({ id, data: updates });
+    let debounced = debouncedUpdatesRef.current.get(id);
+    if (!debounced) {
+      debounced = debounce((data: Partial<Character>) => {
+        updateCharacterMutation.mutate({ id, data });
+      }, 300);
+      debouncedUpdatesRef.current.set(id, debounced);
+    }
+    debounced(updates);
   };
 
   const handleEdit = (character: Character) => {
@@ -114,7 +119,9 @@ export function Characters({ campaignId }: { campaignId: string }) {
 
   useEffect(() => {
     return () => {
-      updateCharacterDebounced.current?.cancel();
+      for (const debounced of debouncedUpdatesRef.current.values()) {
+        debounced.flush();
+      }
     };
   }, []);
 
