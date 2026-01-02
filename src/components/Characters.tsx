@@ -1,8 +1,9 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import debounce from "lodash/debounce";
 import { Plus } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import {
   createCharacter,
@@ -53,18 +54,15 @@ export function Characters({ campaignId }: { campaignId: string }) {
     }) => {
       return await updateCharacter(id, data);
     },
-    onSuccess: (data) => {
-      queryClient.setQueryData(["characters"], (old: Character[]) => {
-        return old.map((c) => {
-          if (c.id === data.id) {
-            return data;
-          } else {
-            return c;
-          }
-        });
-      });
+    onError: () => {
+      queryClient.invalidateQueries({ queryKey: ["characters"] });
+      toast.error("Failed to update character");
     },
   });
+
+  const debouncedUpdatesRef = useRef(
+    new Map<string, ReturnType<typeof debounce>>(),
+  );
 
   const deleteCharacterMutation = useMutation({
     mutationFn: async (id: string) => {
@@ -77,7 +75,23 @@ export function Characters({ campaignId }: { campaignId: string }) {
   });
 
   const handleUpdate = (id: string, updates: Partial<Character>) => {
-    updateCharacterMutation.mutate({ id, data: updates });
+    queryClient.setQueryData(["characters"], (old: Character[]) => {
+      return old.map((c) => {
+        if (c.id === id) {
+          return { ...c, ...updates };
+        } else {
+          return c;
+        }
+      });
+    });
+    let debounced = debouncedUpdatesRef.current.get(id);
+    if (!debounced) {
+      debounced = debounce((data: Partial<Character>) => {
+        updateCharacterMutation.mutate({ id, data });
+      }, 300);
+      debouncedUpdatesRef.current.set(id, debounced);
+    }
+    debounced(updates);
   };
 
   const handleEdit = (character: Character) => {
@@ -102,6 +116,14 @@ export function Characters({ campaignId }: { campaignId: string }) {
       handleUpdate(editingCharacter.id, character);
     }
   };
+
+  useEffect(() => {
+    return () => {
+      for (const debounced of debouncedUpdatesRef.current.values()) {
+        debounced.flush();
+      }
+    };
+  }, []);
 
   useEffect(() => {
     const pusher = createPusherClient(campaignId);

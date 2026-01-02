@@ -6,13 +6,11 @@ import { Input } from "./ui/input";
 import { Progress } from "./ui/progress";
 
 export const ResourceTracker = ({
-  character,
   label,
   field: { current, max },
   name,
   onUpdate,
 }: {
-  character: Character;
   label: string;
   field: Resource;
   name: keyof Character;
@@ -25,7 +23,6 @@ export const ResourceTracker = ({
     } else {
       newValue = Math.max(0, newValue);
     }
-    (character[name] as Resource).current = newValue;
     onUpdate({ [name]: { max, current: newValue } });
   };
 
