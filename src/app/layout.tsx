@@ -39,6 +39,7 @@ export default function RootLayout({
       <body
         className={`${cinzel.variable} ${geistSans.variable} ${geistMono.variable} antialiased font-serif min-h-screen bg-[url('/background.jpg')] bg-cover bg-center bg-fixed`}
       >
+        <div id="dice-box"></div>
         <Providers>
           <header className="border-b sticky top-0 bg-accent z-10">
             <div className="container mx-auto flex items-center justify-between">

@@ -39,17 +39,11 @@ export type DualityDiceRoll = {
 export const DICE_VALUES = [4, 6, 8, 10, 12, 20] as const;
 export type DiceValue = (typeof DICE_VALUES)[number];
 
-export type DiceRoll = {
-  dieType: 4 | 6 | 8 | 10 | 12 | 20;
-  results: number[];
-};
-
-export type RollResult = Record<DiceValue, number[]>;
 
 export type PoolDiceRoll = {
   user: string;
   character?: Character | null;
-  results: RollResult;
+  results: DiceRollResult;
   total: number;
   rollType: "pool";
   timestamp: string;
@@ -63,4 +57,50 @@ export function isDualityDiceRoll(roll: AnyDiceRoll): roll is DualityDiceRoll {
 
 export function isPoolDiceRoll(roll: AnyDiceRoll): roll is PoolDiceRoll {
   return (roll as PoolDiceRoll).rollType === "pool";
+}
+
+
+export interface IndividualRoll {
+  die: number;
+  order: number;
+  roll: number;
+  type: "roll";
+  value: number;
+}
+
+interface Modifier {
+  type: "number";
+  value: number;
+  rolls?: never; // Ensures we can distinguish from IndividualRoll
+}
+
+type DiceElement = IndividualRoll | Modifier;
+
+export interface DiceBoxGroupResult {
+  count: { value: number };
+  die: { value: number };
+  rolls: DiceElement[];
+  type: "die";
+  value: number; // The sum of the rolls
+}
+
+export interface MultiDiceRollResult {
+  dice: DiceBoxGroupResult[];
+  value: number; // The total sum of all dice
+  ops: string[];
+  type: "expressionroll";
+}
+
+export type DiceRollResult = DiceBoxGroupResult | MultiDiceRollResult;
+
+export function isMultiDiceRollResult(
+  result: DiceRollResult,
+): result is MultiDiceRollResult {
+  return result.type === "expressionroll";
+}
+
+export function isSimpleDieRollResult(
+  result: DiceRollResult,
+): result is DiceBoxGroupResult {
+  return result.type === "die";
 }

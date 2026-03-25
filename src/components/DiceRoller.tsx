@@ -1,7 +1,7 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { X } from "lucide-react";
+import { Minus, Plus, X } from "lucide-react";
 import type { Channel } from "pusher-js";
 import { useEffect, useRef, useState } from "react";
 import Select from "react-select";
@@ -13,6 +13,7 @@ import {
 } from "@/actions";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useDiceRoller } from "@/context/DiceContext";
 import { authClient } from "@/lib/auth-client";
 import { dayjs } from "@/lib/dayjs";
 import { createPusherClient } from "@/lib/pusher";
@@ -23,8 +24,9 @@ import {
   type DiceValue,
   type DualityDiceRoll,
   isDualityDiceRoll,
+  isMultiDiceRollResult,
+  isSimpleDieRollResult,
   type PoolDiceRoll,
-  type RollResult,
 } from "@/schema";
 import { Badge } from "./ui/badge";
 import { Item, ItemContent, ItemDescription, ItemTitle } from "./ui/item";
@@ -34,23 +36,32 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
 
 type DicePool = Record<DiceValue, number>;
 
-function formatRollResult({ results, user, character }: PoolDiceRoll): string {
-  const parts: string[] = [];
+const formatDiceRoll = ({ results, user, character }: PoolDiceRoll): string => {
+  if (isMultiDiceRollResult(results)) {
+    const segments = results.dice.map((item, index) => {
+      let segmentStr = "";
 
-  for (const [sides, rolls] of Object.entries(results)) {
-    if (rolls.length === 0) continue;
-    const subtotal = rolls.reduce((a, b) => a + b, 0);
-    parts.push(`d${sides} → [${rolls.join(", ")}] = ${subtotal}`);
+      if ("rolls" in item && item.rolls) {
+        // Group dice results: (8 + 2)
+        const rollValues = item.rolls.map((r) => r.value).join(" + ");
+        segmentStr = `(${rollValues})`;
+      } else {
+        // Flat modifier: 1
+        segmentStr = item.value.toString();
+      }
+
+      // Append the operator if it exists for this index
+      const operator = results.ops[index] ? ` ${results.ops[index]} ` : "";
+      return `${segmentStr}${operator}`;
+    });
+
+    return `🎲 ${character ? `${character.name} (${user})` : user} rolled:\n${segments.join("")} = ${results.value}`;
+  } else {
+    // Single die type result: 2d6 → [3, 5] = 8
+    const rolls = results.rolls.map((r) => r.value).join(", ");
+    return `🎲 ${character ? `${character.name} (${user})` : user} rolled:\nd${results.die.value} → [${rolls}] = ${results.value}`;
   }
-
-  if (parts.length === 0) return "No dice rolled.";
-
-  const total = Object.values(results)
-    .flat()
-    .reduce((a, b) => a + b, 0);
-
-  return `🎲 ${character ? `${character.name} (${user})` : user} rolled:\n${parts.join("\n")}\nTotal: ${total}`;
-}
+};
 
 function formatDualityDieRoll({
   hopeDie,
@@ -73,11 +84,13 @@ function formatDualityDieRoll({
 }
 
 export function DiceRoller({ campaignId }: { campaignId: string }) {
+  const { rollDice: roll3dDice } = useDiceRoller();
   const { data: session } = authClient.useSession();
   const [rolls, setRolls] = useState<AnyDiceRoll[]>([]);
   const [pool, setPool] = useState<DicePool>(
     Object.fromEntries(DICE_VALUES.map((v) => [v, 0])) as DicePool,
   );
+  const [modifier, setModifier] = useState(0);
 
   const [autoApplyRolls, setAutoApplyRolls] = useState<boolean>(true);
   const [rollAsCharacter, setRollAsCharacter] = useState<Character | null>(
@@ -110,8 +123,14 @@ export function DiceRoller({ campaignId }: { campaignId: string }) {
   });
 
   const rollDualityDice = async () => {
-    const hopeDie = Math.floor(Math.random() * 12) + 1;
-    const fearDie = Math.floor(Math.random() * 12) + 1;
+    const results = await roll3dDice("2d12");
+    console.log("3dDice results:", results);
+    if (!isSimpleDieRollResult(results)) {
+      toast.error("Unexpected dice roll result format");
+      return;
+    }
+    const fearDie = results.rolls[1].value;
+    const hopeDie = results.rolls[0].value;
 
     const newRoll: DualityDiceRoll = {
       hopeDie,
@@ -177,26 +196,29 @@ export function DiceRoller({ campaignId }: { campaignId: string }) {
     }));
   };
 
-  const rollDice = () => {
-    const newResults: RollResult = Object.fromEntries(
-      DICE_VALUES.map((v) => [v, []]),
-    ) as unknown as RollResult;
+  const rollDice = async () => {
+    const notation = Object.entries(pool)
+      .filter(([_, count]) => count > 0)
+      .map(([sides, count]) => `${count}d${sides}`)
+      .join("+");
 
-    let total = 0;
+    console.log("Rolling dice with pool:", notation, "and modifier:", modifier);
 
-    for (const [key, count] of Object.entries(pool)) {
-      const sides = Number(key) as DiceValue;
-      for (let i = 0; i < count; i++) {
-        const roll = Math.floor(Math.random() * sides) + 1;
-        total += roll;
-        newResults[sides].push(roll);
-      }
-    }
+    const results = await roll3dDice(
+      modifier >= 0
+        ? `${notation}+${modifier}`
+        : modifier <= 0
+          ? `${notation}-${Math.abs(modifier)}`
+          : notation,
+    );
+
+    console.log("3dDice results:", results);
+
     const poolResult: PoolDiceRoll = {
       user: session?.user?.name || "Unknown",
       character: rollAsCharacter,
-      results: newResults,
-      total,
+      results: results,
+      total: results.value,
       rollType: "pool",
       timestamp: new Date().toISOString(),
     };
@@ -206,8 +228,8 @@ export function DiceRoller({ campaignId }: { campaignId: string }) {
       rollChannel.current.trigger("client-newRoll", poolResult);
     }
     if (showDiceRollPopups) {
-      toast(`You rolled a total of ${total}`, {
-        description: formatRollResult(poolResult),
+      toast(`You rolled a total of ${poolResult.total}`, {
+        description: formatDiceRoll(poolResult),
         richColors: true,
       });
     }
@@ -244,7 +266,7 @@ export function DiceRoller({ campaignId }: { campaignId: string }) {
         } else {
           toast(`${roll.user} rolled ${roll.total}`, {
             richColors: true,
-            description: formatRollResult(roll),
+            description: formatDiceRoll(roll),
           });
         }
       }
@@ -326,6 +348,42 @@ export function DiceRoller({ campaignId }: { campaignId: string }) {
                 </Button>
               </div>
             ))}
+            <Button
+              onClick={() =>
+                setPool(
+                  Object.fromEntries(
+                    DICE_VALUES.map((v) => [v, 0]),
+                  ) as DicePool,
+                )
+              }
+              variant="outline"
+              className="ml-2"
+            >
+              Clear Pool
+            </Button>
+          </div>
+          {/* Modifier Controls */}
+          <div className="flex items-center justify-between m-2 rounded-lg border border-primary">
+            <span className="text-sm uppercase font-semibold ml-2">
+              Modifier
+            </span>
+            <div className="flex items-center gap-3">
+              <Button
+                onClick={() => setModifier((m) => m - 1)}
+                className="p-1 rounded "
+              >
+                <Minus className="w-4 h-4" />
+              </Button>
+              <span className=" font-mono w-6 text-center">
+                {modifier >= 0 ? `+${modifier}` : modifier}
+              </span>
+              <Button
+                onClick={() => setModifier((m) => m + 1)}
+                className="p-1 rounded"
+              >
+                <Plus className="w-4 h-4" />
+              </Button>
+            </div>
           </div>
 
           {hasDice && (
@@ -333,6 +391,8 @@ export function DiceRoller({ campaignId }: { campaignId: string }) {
               <Button onClick={rollDice}>Roll Dice</Button>
             </div>
           )}
+
+          {/* <DaggerheartPicker /> */}
 
           {rolls.length > 0 && (
             <Item variant="outline" className="mt-2">
@@ -346,7 +406,7 @@ export function DiceRoller({ campaignId }: { campaignId: string }) {
                   </>
                 ) : (
                   <ItemTitle>
-                    {formatRollResult(rolls[0])} (Total: {rolls[0].total})
+                    {formatDiceRoll(rolls[0])} (Total: {rolls[0].total})
                   </ItemTitle>
                 )}
               </ItemContent>
@@ -382,7 +442,7 @@ export function DiceRoller({ campaignId }: { campaignId: string }) {
                         {r.fearDie})
                       </>
                     ) : (
-                      formatRollResult(r)
+                      formatDiceRoll(r)
                     )}
                   </ItemTitle>
                   <ItemDescription>
