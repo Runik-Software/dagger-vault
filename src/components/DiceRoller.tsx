@@ -1,8 +1,8 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { X } from "lucide-react";
-import type { Channel } from "pusher-js";
+import confetti from "canvas-confetti";
+import { Minus, Plus, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import Select from "react-select";
 import { toast } from "sonner";
@@ -13,19 +13,24 @@ import {
 } from "@/actions";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useCampaignRolls } from "@/context/CampaignRollsContext";
+import { useDiceRoller } from "@/context/DiceContext";
 import { authClient } from "@/lib/auth-client";
 import { dayjs } from "@/lib/dayjs";
-import { createPusherClient } from "@/lib/pusher";
 import {
-  type AnyDiceRoll,
-  type Character,
   DICE_VALUES,
   type DiceValue,
   type DualityDiceRoll,
+  formatDiceRoll,
+  formatDualityDieRoll,
   isDualityDiceRoll,
+  listDiceRolls,
   type PoolDiceRoll,
-  type RollResult,
-} from "@/schema";
+  parseNotation,
+  type RawDiceRollResult,
+} from "@/lib/dice";
+import { createPusherClient } from "@/lib/pusher";
+import type { Character } from "@/schema";
 import { Badge } from "./ui/badge";
 import { Item, ItemContent, ItemDescription, ItemTitle } from "./ui/item";
 import { Label } from "./ui/label";
@@ -34,50 +39,20 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
 
 type DicePool = Record<DiceValue, number>;
 
-function formatRollResult({ results, user, character }: PoolDiceRoll): string {
-  const parts: string[] = [];
-
-  for (const [sides, rolls] of Object.entries(results)) {
-    if (rolls.length === 0) continue;
-    const subtotal = rolls.reduce((a, b) => a + b, 0);
-    parts.push(`d${sides} → [${rolls.join(", ")}] = ${subtotal}`);
-  }
-
-  if (parts.length === 0) return "No dice rolled.";
-
-  const total = Object.values(results)
-    .flat()
-    .reduce((a, b) => a + b, 0);
-
-  return `🎲 ${character ? `${character.name} (${user})` : user} rolled:\n${parts.join("\n")}\nTotal: ${total}`;
-}
-
-function formatDualityDieRoll({
-  hopeDie,
-  fearDie,
-  character,
-  user,
-  rollType,
-}: DualityDiceRoll): string {
-  const total = hopeDie + fearDie;
-  const emoji = rollType === "hope" ? "🙏" : rollType === "fear" ? "💀" : "🏆";
-  let message = character
-    ? `${character.name} (${user}) rolled a ${total} `
-    : `${user} rolled a ${total} `;
-
-  if (rollType === "hope") message += "with Hope";
-  else if (rollType === "fear") message += "with Fear";
-  else message += "- Critical success";
-
-  return `${emoji} ${message}`;
-}
-
 export function DiceRoller({ campaignId }: { campaignId: string }) {
+  const {
+    rollDice: roll3dDice,
+    isReady: is3dDiceReady,
+    isRolling,
+  } = useDiceRoller();
+  const { rolls, setRolls } = useCampaignRolls();
   const { data: session } = authClient.useSession();
-  const [rolls, setRolls] = useState<AnyDiceRoll[]>([]);
+  /** biome-ignore lint/suspicious/noExplicitAny: Pusher channel type */
+  const rollChannel = useRef<any>(null);
   const [pool, setPool] = useState<DicePool>(
     Object.fromEntries(DICE_VALUES.map((v) => [v, 0])) as DicePool,
   );
+  const [modifier, setModifier] = useState(0);
 
   const [autoApplyRolls, setAutoApplyRolls] = useState<boolean>(true);
   const [rollAsCharacter, setRollAsCharacter] = useState<Character | null>(
@@ -87,7 +62,6 @@ export function DiceRoller({ campaignId }: { campaignId: string }) {
     null,
   );
   const [sendRollToEveryone, setSendRollToEveryone] = useState<boolean>(true);
-  const rollChannel = useRef<Channel>(null);
 
   const showDiceKey = `${campaignId}_showDiceRollPopups`;
   const autoApplyKey = `${campaignId}_autoEnableApplyDiceRolls`;
@@ -110,14 +84,22 @@ export function DiceRoller({ campaignId }: { campaignId: string }) {
   });
 
   const rollDualityDice = async () => {
-    const hopeDie = Math.floor(Math.random() * 12) + 1;
-    const fearDie = Math.floor(Math.random() * 12) + 1;
+    const results = await roll3dDice({
+      dice: [
+        { qty: 1, sides: 12, theme: "default", themeColor: "#0b6e00" },
+        { qty: 1, sides: 12, theme: "rust", themeColor: "#6e0005" },
+      ],
+      modifier,
+    });
+    const hopeDie = results.rolls[0].value;
+    const fearDie = results.rolls[1].value;
 
     const newRoll: DualityDiceRoll = {
       hopeDie,
       fearDie,
       character: rollAsCharacter,
       user: session?.user?.name || "Unknown",
+      modifier,
       rollType:
         hopeDie === fearDie ? "critical" : hopeDie > fearDie ? "hope" : "fear",
       timestamp: new Date().toISOString(),
@@ -163,7 +145,14 @@ export function DiceRoller({ campaignId }: { campaignId: string }) {
         },
       });
     }
-    setRolls((prev) => [newRoll, ...prev]);
+
+    if (newRoll.rollType === "critical") {
+      confetti({
+        particleCount: 250,
+        spread: 300,
+        origin: { y: 0.6 },
+      });
+    }
   };
 
   const addDie = (value: DiceValue) => {
@@ -177,25 +166,28 @@ export function DiceRoller({ campaignId }: { campaignId: string }) {
     }));
   };
 
-  const rollDice = () => {
-    const newResults: RollResult = Object.fromEntries(
-      DICE_VALUES.map((v) => [v, []]),
-    ) as unknown as RollResult;
-
-    let total = 0;
-
-    for (const [key, count] of Object.entries(pool)) {
-      const sides = Number(key) as DiceValue;
-      for (let i = 0; i < count; i++) {
-        const roll = Math.floor(Math.random() * sides) + 1;
-        total += roll;
-        newResults[sides].push(roll);
-      }
+  const rollDice = async () => {
+    let results: RawDiceRollResult;
+    const notation = parseNotation(pool, modifier);
+    console.log("Rolling dice with pool:", notation, "and modifier:", modifier);
+    try {
+      results = await roll3dDice(notation);
+    } catch (error) {
+      toast.error(
+        `Error rolling dice: ${error instanceof Error ? error.message : "Unknown error"}`,
+      );
+      return;
     }
+
+    console.log("3dDice results:", results);
+
+    const total =
+      results.rolls.map((r) => r.value).reduce((a, b) => a + b, 0) + modifier;
+
     const poolResult: PoolDiceRoll = {
       user: session?.user?.name || "Unknown",
       character: rollAsCharacter,
-      results: newResults,
+      results,
       total,
       rollType: "pool",
       timestamp: new Date().toISOString(),
@@ -206,12 +198,11 @@ export function DiceRoller({ campaignId }: { campaignId: string }) {
       rollChannel.current.trigger("client-newRoll", poolResult);
     }
     if (showDiceRollPopups) {
-      toast(`You rolled a total of ${total}`, {
-        description: formatRollResult(poolResult),
+      toast(`You rolled a total of ${poolResult.total}`, {
+        description: formatDiceRoll(poolResult),
         richColors: true,
       });
     }
-    setRolls((prev) => [poolResult, ...prev]);
     setPool(Object.fromEntries(DICE_VALUES.map((v) => [v, 0])) as DicePool);
   };
 
@@ -235,31 +226,15 @@ export function DiceRoller({ campaignId }: { campaignId: string }) {
       `private-campaign-${campaignId}-rolls`,
     );
 
-    rollChannel.current.bind("client-newRoll", (roll: AnyDiceRoll) => {
-      if (showDiceRollPopups) {
-        if (isDualityDiceRoll(roll)) {
-          toast(formatDualityDieRoll(roll), {
-            richColors: false,
-          });
-        } else {
-          toast(`${roll.user} rolled ${roll.total}`, {
-            richColors: true,
-            description: formatRollResult(roll),
-          });
-        }
-      }
-      setRolls((old) => [roll, ...old]);
-    });
-
     return () => {
       rollChannel.current?.unbind_all();
       pusher.unsubscribe(`private-campaign-${campaignId}-rolls`);
       pusher.disconnect();
     };
-  }, [campaignId, showDiceRollPopups]);
+  }, [campaignId]);
 
   return (
-    <div className="flex flex-col items-center gap-4 p-6">
+    <div className=" w-full flex flex-col items-center gap-4 p-6">
       <Card className="w-full max-w-2xl text-center">
         <CardHeader>
           <CardTitle className="text-2xl font-bold">Dice Roller</CardTitle>
@@ -287,7 +262,11 @@ export function DiceRoller({ campaignId }: { campaignId: string }) {
             options={characters ?? []}
           />
           <div className="flex items-center gap-4 mb-4">
-            <Button onClick={rollDualityDice} className="flex-1">
+            <Button
+              onClick={rollDualityDice}
+              className="flex-1"
+              disabled={!is3dDiceReady || isRolling}
+            >
               Roll Duality!
             </Button>
 
@@ -326,11 +305,53 @@ export function DiceRoller({ campaignId }: { campaignId: string }) {
                 </Button>
               </div>
             ))}
+            <Button
+              onClick={() =>
+                setPool(
+                  Object.fromEntries(
+                    DICE_VALUES.map((v) => [v, 0]),
+                  ) as DicePool,
+                )
+              }
+              variant="outline"
+              className="ml-2"
+            >
+              Clear Pool
+            </Button>
+          </div>
+          {/* Modifier Controls */}
+          <div className="flex items-center justify-between m-2 rounded-lg border border-primary">
+            <span className="text-sm uppercase font-semibold ml-2">
+              Modifier
+            </span>
+            <div className="flex items-center gap-3">
+              <Button
+                onClick={() => setModifier((m) => m - 1)}
+                className="p-1 rounded "
+              >
+                <Minus className="w-4 h-4" />
+              </Button>
+              <span className=" font-mono w-6 text-center">
+                {modifier >= 0 ? `+${modifier}` : modifier}
+              </span>
+              <Button
+                onClick={() => setModifier((m) => m + 1)}
+                className="p-1 rounded"
+              >
+                <Plus className="w-4 h-4" />
+              </Button>
+            </div>
           </div>
 
           {hasDice && (
             <div className="flex justify-center pt-4">
-              <Button onClick={rollDice}>Roll Dice</Button>
+              <Button
+                className="flex-1"
+                onClick={rollDice}
+                disabled={!is3dDiceReady || isRolling}
+              >
+                Roll Dice
+              </Button>
             </div>
           )}
 
@@ -345,9 +366,12 @@ export function DiceRoller({ campaignId }: { campaignId: string }) {
                     </ItemDescription>
                   </>
                 ) : (
-                  <ItemTitle>
-                    {formatRollResult(rolls[0])} (Total: {rolls[0].total})
-                  </ItemTitle>
+                  <>
+                    <ItemTitle>{formatDiceRoll(rolls[0])}</ItemTitle>
+                    <ItemDescription className="text-sm text-gray-500 text-start">
+                      {listDiceRolls(rolls[0].results.rolls)}
+                    </ItemDescription>
+                  </>
                 )}
               </ItemContent>
             </Item>
@@ -382,11 +406,14 @@ export function DiceRoller({ campaignId }: { campaignId: string }) {
                         {r.fearDie})
                       </>
                     ) : (
-                      formatRollResult(r)
+                      formatDiceRoll(r)
                     )}
                   </ItemTitle>
                   <ItemDescription>
-                    {dayjs(r.timestamp).fromNow()}
+                    {isDualityDiceRoll(r)
+                      ? "Duality Roll"
+                      : listDiceRolls(r.results.rolls)}{" "}
+                    - {dayjs(r.timestamp).fromNow()}
                   </ItemDescription>
                 </ItemContent>
               </Item>

@@ -8,7 +8,13 @@ import z from "zod";
 import { getCampaignUserDetails, updateUserCampaign } from "@/actions";
 import { authClient } from "@/lib/auth-client";
 import { Button } from "./ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "./ui/card";
 import { Input } from "./ui/input";
 import { Spinner } from "./ui/spinner";
 import { Textarea } from "./ui/textarea";
@@ -74,82 +80,79 @@ export function PersonalCampaignSpace({ campaignId }: { campaignId: string }) {
     );
   }
   return (
-    <div className="flex flex-col gap-4 p-6">
-      <h1>
-        A place for your notes and images. Use to make notes on the campaign and
-        keep a copy of ability cards handy
-      </h1>
-
-      <Textarea
-        className="bg-primary-foreground"
-        value={updatedNotes ?? ""}
-        onChange={(e) => setUpdatedNotes(e.target.value)}
-        placeholder="Whatever you want. Anything you think will be useful to make a note of"
-      />
-      <div className="flex justify-end w-full">
-        <Button
-          className="mx-2"
-          disabled={updatedNotes === data.notes}
-          onClick={() => saveMutation.mutate({ notes: updatedNotes ?? "" })}
-        >
-          <Save />
-          Save
-        </Button>
-        <Button
-          className=""
-          disabled={updatedNotes === data.notes}
-          onClick={() => setUpdatedNotes(`${data.notes}`)}
-        >
-          Reset
-        </Button>
-      </div>
-      <Card>
-        <CardHeader>
-          <CardTitle>Images</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex">
-            <Input
-              placeholder="Image Url"
-              value={newImageUrl}
-              onChange={(e) => setNewImageUrl(e.target.value)}
-            />
-            <Button
-              disabled={!newImageUrl}
-              className="ml-2"
-              onClick={() => addImage()}
-            >
-              Add
-            </Button>
-          </div>
-          <div className="grid grid-cols-3 gap-4 mt-4 border-8">
-            {(data.images ?? []).map((i) => (
-              <div key={i} className="relative overflow-hidden rounded h-40">
-                {/* biome-ignore lint/performance/noImgElement: Don't care */}
-                <img
-                  src={i}
-                  // biome-ignore lint/a11y/noRedundantAlt: Nothing else fits
-                  alt={`Image ${i}`}
-                  className="object-cover w-full h-full"
-                />
-                <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50 opacity-0 hover:opacity-75 transition-opacity">
-                  <Button
-                    className="bg-red-600 text-white"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      saveMutation.mutate({
-                        images: (data.images ?? []).filter((img) => img !== i),
-                      });
-                    }}
-                  >
-                    Delete
-                  </Button>
-                </div>
+    <Card className="">
+      <CardHeader>
+        <CardTitle>Personal Campaign Space</CardTitle>
+        <CardDescription>
+          A place for your notes and images. Use to make notes on the campaign
+          and keep a copy of ability cards handy
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <Textarea
+          className="bg-primary-foreground"
+          value={updatedNotes ?? ""}
+          onChange={(e) => setUpdatedNotes(e.target.value)}
+          placeholder="Whatever you want. Anything you think will be useful to make a note of"
+        />
+        <div className="flex justify-end w-full pt-4">
+          <Button
+            className="mx-2"
+            disabled={updatedNotes === data.notes}
+            onClick={() => saveMutation.mutate({ notes: updatedNotes ?? "" })}
+          >
+            <Save />
+            Save
+          </Button>
+          <Button
+            className=""
+            disabled={updatedNotes === data.notes}
+            onClick={() => setUpdatedNotes(`${data.notes}`)}
+          >
+            Reset
+          </Button>
+        </div>
+        <div className="flex mt-4">
+          <Input
+            placeholder="Image Url"
+            value={newImageUrl}
+            onChange={(e) => setNewImageUrl(e.target.value)}
+          />
+          <Button
+            disabled={!newImageUrl}
+            className="ml-2"
+            onClick={() => addImage()}
+          >
+            Add
+          </Button>
+        </div>
+        <div className="grid grid-cols-3 gap-4 mt-4 border-8">
+          {(data.images ?? []).map((i) => (
+            <div key={i} className="relative overflow-hidden rounded h-40">
+              {/* biome-ignore lint/performance/noImgElement: Don't care */}
+              <img
+                src={i}
+                // biome-ignore lint/a11y/noRedundantAlt: Nothing else fits
+                alt={`Image $i`}
+                className="object-cover w-full h-full"
+              />
+              <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50 opacity-0 hover:opacity-75 transition-opacity">
+                <Button
+                  className="bg-red-600 text-white"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    saveMutation.mutate({
+                      images: (data.images ?? []).filter((img) => img !== i),
+                    });
+                  }}
+                >
+                  Delete
+                </Button>
               </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
-    </div>
+            </div>
+          ))}
+        </div>
+      </CardContent>
+    </Card>
   );
 }
