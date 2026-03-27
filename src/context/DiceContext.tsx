@@ -8,6 +8,7 @@ import DiceParser from "@3d-dice/dice-parser-interface";
 import type React from "react";
 import { createContext, useContext, useEffect, useRef, useState } from "react";
 import type { AdvancedNotation, DiceRoll, RawDiceRollResult } from "@/lib/dice";
+import { generateRandomDiceRoll } from "@/lib/dice";
 
 interface DiceRollOptions {
   theme: string;
@@ -20,6 +21,7 @@ interface DiceContextType {
   ) => Promise<RawDiceRollResult>;
   isReady: boolean;
   isRolling: boolean;
+  setUse3dDice: (use3d: boolean) => void;
 }
 
 interface DiceProviderProps {
@@ -30,6 +32,7 @@ export const DiceContext = createContext<DiceContextType>({
   rollDice: async () => ({ rolls: [], modifier: 0, total: 0 }),
   isReady: false,
   isRolling: false,
+  setUse3dDice: () => {},
 });
 
 export const useDiceRoller = () => useContext(DiceContext);
@@ -39,6 +42,7 @@ export const DiceProvider = ({ children }: DiceProviderProps) => {
   const drpRef = useRef<any>(null);
   const [isReady, setIsReady] = useState(false);
   const [diceRolling, setDiceRolling] = useState(false);
+  const [use3dDice, setUse3dDice] = useState(true);
   const clearTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
@@ -94,10 +98,6 @@ export const DiceProvider = ({ children }: DiceProviderProps) => {
     notation: AdvancedNotation,
   ): Promise<RawDiceRollResult> => {
     try {
-      if (!isReady || !diceBoxRef.current) {
-        throw new Error("Dice roller is not ready");
-      }
-
       if (diceRolling) {
         throw new Error("Dice are already rolling");
       }
@@ -108,34 +108,53 @@ export const DiceProvider = ({ children }: DiceProviderProps) => {
         clearTimeoutRef.current = null;
       }
 
-      diceBoxRef.current.clear();
       setDiceRolling(true);
 
-      const results: DiceRoll[] = await diceBoxRef.current
-        .show()
-        .roll(notation.dice);
+      let results: RawDiceRollResult;
 
-      console.log("Raw dice results:", results);
+      if (use3dDice) {
+        // Use 3D dice if ready and enabled
+        if (!isReady || !diceBoxRef.current) {
+          throw new Error("Dice roller is not ready");
+        }
 
-      // Set the clear timeout
-      setClearTimeout();
+        diceBoxRef.current.clear();
 
-      const total =
-        results.map((r) => r.value).reduce((a, b) => a + b, 0) +
-        (notation.modifier || 0);
+        const rolls: DiceRoll[] = await diceBoxRef.current
+          .show()
+          .roll(notation.dice);
 
-      return {
-        rolls: results,
-        modifier: notation.modifier || 0,
-        total,
-      } satisfies RawDiceRollResult;
+        console.log("Raw dice results:", rolls);
+
+        const total =
+          rolls.map((r) => r.value).reduce((a, b) => a + b, 0) +
+          (notation.modifier || 0);
+
+        results = {
+          rolls,
+          modifier: notation.modifier || 0,
+          total,
+        } satisfies RawDiceRollResult;
+      } else {
+        // Generate random results without 3D dice
+        results = generateRandomDiceRoll(notation);
+      }
+
+      // Set the clear timeout only for 3D dice
+      if (use3dDice) {
+        setClearTimeout();
+      }
+
+      return results;
     } finally {
       setDiceRolling(false);
     }
   };
 
   return (
-    <DiceContext.Provider value={{ rollDice, isReady, isRolling: diceRolling }}>
+    <DiceContext.Provider
+      value={{ rollDice, isReady, isRolling: diceRolling, setUse3dDice }}
+    >
       {children}
     </DiceContext.Provider>
   );

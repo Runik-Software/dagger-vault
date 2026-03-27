@@ -21,16 +21,19 @@ export default function CampaignUserSettings({
   const [showDiceRollPopups, setShowDiceRollPopups] = useState(true);
   const [autoEnableApplyDiceRolls, setAutoEnableApplyDiceRolls] =
     useState(true);
+  const [use3dDice, setUse3dDice] = useState(true);
   const [loaded, setLoaded] = useState(false);
 
   const showDiceKey = `${campaignId}_showDiceRollPopups`;
   const autoApplyKey = `${campaignId}_autoEnableApplyDiceRolls`;
+  const use3dDiceKey = `${campaignId}_use3dDice`;
 
   useEffect(() => {
     if (typeof window === "undefined") return;
 
     const storedShowDice = localStorage.getItem(showDiceKey);
     const storedAutoApply = localStorage.getItem(autoApplyKey);
+    const stored3dDice = localStorage.getItem(use3dDiceKey);
 
     if (storedShowDice !== null) {
       setShowDiceRollPopups(storedShowDice === "true");
@@ -40,8 +43,12 @@ export default function CampaignUserSettings({
       setAutoEnableApplyDiceRolls(storedAutoApply === "true");
     }
 
+    if (stored3dDice !== null) {
+      setUse3dDice(stored3dDice === "true");
+    }
+
     setLoaded(true);
-  }, [showDiceKey, autoApplyKey]);
+  }, [showDiceKey, autoApplyKey, use3dDiceKey]);
 
   useEffect(() => {
     if (!loaded) return;
@@ -52,6 +59,11 @@ export default function CampaignUserSettings({
     if (!loaded) return;
     localStorage.setItem(autoApplyKey, String(autoEnableApplyDiceRolls));
   }, [autoEnableApplyDiceRolls, autoApplyKey, loaded]);
+
+  useEffect(() => {
+    if (!loaded) return;
+    localStorage.setItem(use3dDiceKey, String(use3dDice));
+  }, [use3dDice, use3dDiceKey, loaded]);
 
   if (!loaded) return null;
 
@@ -75,7 +87,6 @@ export default function CampaignUserSettings({
             onCheckedChange={setShowDiceRollPopups}
           />
         </div>
-
         <div className="flex items-center justify-between">
           <Label
             htmlFor="autoEnableApplyDiceRolls"
@@ -89,6 +100,16 @@ export default function CampaignUserSettings({
             onCheckedChange={setAutoEnableApplyDiceRolls}
           />
         </div>
+        <div className="flex items-center justify-between">
+          <Label htmlFor="use3dDice" className="text-sm font-medium">
+            Use 3D dice
+          </Label>
+          <Switch
+            id="use3dDice"
+            checked={use3dDice}
+            onCheckedChange={setUse3dDice}
+          />
+        </div>{" "}
       </CardContent>
     </Card>
   );

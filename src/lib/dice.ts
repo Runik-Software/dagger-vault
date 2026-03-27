@@ -122,3 +122,45 @@ export const listDiceRolls = (rolls: DiceRoll[]): string => {
         .map(([dieType, count]) => `${count}${dieType}`)
         .join(" + ");
 }
+
+/**
+ * Generates random dice rolls without using the 3D dice box
+ * Used when user has disabled 3D dice
+ */
+export const generateRandomDiceRoll = (notation: AdvancedNotation): RawDiceRollResult => {
+    let rollId = 0;
+    const rolls: DiceRoll[] = notation.dice.flatMap((die) => {
+        const results: DiceRoll[] = [];
+        for (let i = 0; i < die.qty; i++) {
+            const value = Math.floor(Math.random() * die.sides) + 1;
+            results.push({
+                dieType: `d${die.sides}`,
+                groupId: 0,
+                rollId: rollId++,
+                sides: die.sides,
+                value,
+            });
+        }
+        return results;
+    });
+
+    const total =
+        rolls.map((r) => r.value).reduce((a, b) => a + b, 0) +
+        (notation.modifier || 0);
+
+    return {
+        rolls,
+        modifier: notation.modifier || 0,
+        total,
+    } satisfies RawDiceRollResult;
+};
+
+/**
+ * Generates random duality dice rolls (two d12s)
+ */
+export const generateRandomDualityRoll = (): { hopeDie: number; fearDie: number } => {
+    return {
+        hopeDie: Math.floor(Math.random() * 12) + 1,
+        fearDie: Math.floor(Math.random() * 12) + 1,
+    };
+};
