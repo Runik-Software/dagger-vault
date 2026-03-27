@@ -3,7 +3,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { SquareArrowLeft } from "lucide-react";
 import Link from "next/link";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, usePathname, useRouter } from "next/navigation";
 import { useMemo } from "react";
 import { getCampaign } from "@/actions";
 import { CampaignOverview } from "@/components/CampaignOverview";
@@ -17,6 +17,7 @@ export default function CampaignLayout({
 }>) {
   const params = useParams();
   const router = useRouter();
+  const pathname = usePathname();
   const campaignId = params?.id as string;
 
   const { data: session } = authClient.useSession();
@@ -58,42 +59,63 @@ export default function CampaignLayout({
       <CampaignOverview campaign={campaign} />
 
       <div className="w-full">
-        {/* If the tab list is too long, allow items to wrap onto the next row
-            instead of scrolling horizontally. We add `flex-wrap` on the
-            TabsList and keep each trigger as `flex-none` so items keep their
-            natural width and flow to the next line. */}
         <div className="mb-4">
-          <div className="bg-amber-100 border border-amber-200 rounded-xl p-1 flex flex-wrap gap-1 !h-auto w-full">
-            <Link
-              href={`/campaigns/${campaignId}`}
-              className="!flex-none !h-auto data-[state=active]:bg-amber-700 data-[state=active]:text-amber-50"
-            >
-              <Button variant="ghost">Characters</Button>
+          <div className="flex flex-wrap gap-2">
+            <Link href={`/campaigns/${campaignId}`}>
+              <Button
+                variant={
+                  pathname === `/campaigns/${campaignId}`
+                    ? "default"
+                    : "outline"
+                }
+              >
+                Characters
+              </Button>
             </Link>
-            <Link
-              href={`/campaigns/${campaignId}/dice`}
-              className="!flex-none !h-auto data-[state=active]:bg-amber-700 data-[state=active]:text-amber-50"
-            >
-              Dice Rolls
+            <Link href={`/campaigns/${campaignId}/dice`}>
+              <Button
+                variant={
+                  pathname === `/campaigns/${campaignId}/dice`
+                    ? "default"
+                    : "outline"
+                }
+              >
+                Dice Rolls
+              </Button>
             </Link>
-            <Link
-              href={`/campaigns/${campaignId}/personal-space`}
-              className="!flex-none !h-auto data-[state=active]:bg-amber-700 data-[state=active]:text-amber-50"
-            >
-              Personal space
+            <Link href={`/campaigns/${campaignId}/personal-space`}>
+              <Button
+                variant={
+                  pathname === `/campaigns/${campaignId}/personal-space`
+                    ? "default"
+                    : "outline"
+                }
+              >
+                Personal Space
+              </Button>
             </Link>
-            <Link
-              href={`/campaigns/${campaignId}/settings`}
-              className="!flex-none !h-auto data-[state=active]:bg-amber-700 data-[state=active]:text-amber-50"
-            >
-              Settings
+            <Link href={`/campaigns/${campaignId}/settings`}>
+              <Button
+                variant={
+                  pathname === `/campaigns/${campaignId}/settings`
+                    ? "default"
+                    : "outline"
+                }
+              >
+                Settings
+              </Button>
             </Link>
             {userOwnsCampaign && (
-              <Link
-                href={`/campaigns/${campaignId}/users`}
-                className="!flex-none !h-auto data-[state=active]:bg-amber-700 data-[state=active]:text-amber-50"
-              >
-                Users
+              <Link href={`/campaigns/${campaignId}/users`}>
+                <Button
+                  variant={
+                    pathname === `/campaigns/${campaignId}/users`
+                      ? "default"
+                      : "outline"
+                  }
+                >
+                  Users
+                </Button>
               </Link>
             )}
           </div>

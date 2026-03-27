@@ -12,6 +12,13 @@ import {
 } from "@/actions";
 import { Button } from "./ui/button";
 import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "./ui/card";
+import {
   Dialog,
   DialogClose,
   DialogContent,
@@ -95,85 +102,90 @@ export function CampaignUsers({ id }: { id: string }) {
   }
 
   return (
-    <>
-      <h1>Campaign users</h1>
-      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogTrigger asChild>
-          <Button>Add user</Button>
-        </DialogTrigger>
-        <DialogContent>
-          <form onSubmit={addUserForm.handleSubmit(handleAddNewUserSubmit)}>
-            <DialogHeader>
-              <DialogTitle>Add a new user</DialogTitle>
-              <DialogDescription>
-                Add a user to view and manage characters for this campaign
-              </DialogDescription>
-            </DialogHeader>
-            {addUserMutation.isError && (
-              <p className="text-destructive py-4">
-                {addUserMutation.error.message}
-              </p>
-            )}
-            <FieldGroup>
-              <Controller
-                name="email"
-                control={addUserForm.control}
-                render={({ field, fieldState }) => (
-                  <Field
-                    data-invalid={fieldState.invalid}
-                    className="space-y-2"
+    <Card>
+      <CardHeader>
+        <CardTitle>Campaign users</CardTitle>
+        <CardDescription>Manage users for this campaign</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+          <DialogTrigger asChild>
+            <Button>Add user</Button>
+          </DialogTrigger>
+          <DialogContent>
+            <form onSubmit={addUserForm.handleSubmit(handleAddNewUserSubmit)}>
+              <DialogHeader>
+                <DialogTitle>Add a new user</DialogTitle>
+                <DialogDescription>
+                  Add a user to view and manage characters for this campaign
+                </DialogDescription>
+              </DialogHeader>
+              {addUserMutation.isError && (
+                <p className="text-destructive py-4">
+                  {addUserMutation.error.message}
+                </p>
+              )}
+              <FieldGroup>
+                <Controller
+                  name="email"
+                  control={addUserForm.control}
+                  render={({ field, fieldState }) => (
+                    <Field
+                      data-invalid={fieldState.invalid}
+                      className="space-y-2"
+                    >
+                      <FieldLabel>User Email</FieldLabel>
+                      <Input
+                        {...field}
+                        aria-invalid={fieldState.invalid}
+                        type="email"
+                        placeholder="Enter user email"
+                      />
+                      {fieldState.invalid && (
+                        <FieldError errors={[fieldState.error]} />
+                      )}
+                    </Field>
+                  )}
+                />
+              </FieldGroup>
+              <DialogFooter className="pt-4">
+                <DialogClose asChild>
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      addUserForm.reset();
+                      addUserMutation.reset();
+                    }}
                   >
-                    <FieldLabel>User Email</FieldLabel>
-                    <Input
-                      {...field}
-                      aria-invalid={fieldState.invalid}
-                      type="email"
-                      placeholder="Enter user email"
-                    />
-                    {fieldState.invalid && (
-                      <FieldError errors={[fieldState.error]} />
-                    )}
-                  </Field>
-                )}
-              />
-            </FieldGroup>
-            <DialogFooter className="pt-4">
-              <DialogClose asChild>
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    addUserForm.reset();
-                    addUserMutation.reset();
-                  }}
-                >
-                  Cancel
+                    Cancel
+                  </Button>
+                </DialogClose>
+                <Button variant="default" type="submit">
+                  Submit
                 </Button>
-              </DialogClose>
-              <Button variant="default" type="submit">
-                Submit
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
+        {users.map((user) => (
+          <Item key={user.id} variant="outline" className="my-4">
+            <ItemContent>
+              <ItemTitle>{user.name}</ItemTitle>
+              <ItemDescription>{user.email}</ItemDescription>
+            </ItemContent>
+            <ItemActions>
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={() => removeUserMutation.mutate(user.id)}
+              >
+                Remove
+                <Trash2 />
               </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
-      {users.map((user) => (
-        <Item key={user.id} variant="outline" className="my-4">
-          <ItemContent>
-            <ItemTitle>{user.name}</ItemTitle>
-            <ItemDescription>{user.email}</ItemDescription>
-          </ItemContent>
-          <ItemActions>
-            <Button
-              variant="destructive"
-              size="sm"
-              onClick={() => removeUserMutation.mutate(user.id)}
-            >
-              Remove
-              <Trash2 />
-            </Button>
-          </ItemActions>
-        </Item>
-      ))}
-    </>
+            </ItemActions>
+          </Item>
+        ))}
+      </CardContent>
+    </Card>
   );
 }

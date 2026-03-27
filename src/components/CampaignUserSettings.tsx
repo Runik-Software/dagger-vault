@@ -56,7 +56,7 @@ export default function CampaignUserSettings({
   if (!loaded) return null;
 
   return (
-    <Card className="max-w-md mx-auto mt-6">
+    <Card className="">
       <CardHeader>
         <CardTitle>Campaign Settings</CardTitle>
         <CardDescription>

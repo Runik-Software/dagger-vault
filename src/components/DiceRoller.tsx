@@ -239,7 +239,7 @@ export function DiceRoller({ campaignId }: { campaignId: string }) {
   }, [campaignId, showDiceRollPopups]);
 
   return (
-    <div className="flex flex-col items-center gap-4 p-6">
+    <div className=" w-full flex flex-col items-center gap-4 p-6">
       <Card className="w-full max-w-2xl text-center">
         <CardHeader>
           <CardTitle className="text-2xl font-bold">Dice Roller</CardTitle>
