@@ -1,6 +1,7 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
+import confetti from "canvas-confetti";
 import { Minus, Plus, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import Select from "react-select";
@@ -39,7 +40,11 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
 type DicePool = Record<DiceValue, number>;
 
 export function DiceRoller({ campaignId }: { campaignId: string }) {
-  const { rollDice: roll3dDice } = useDiceRoller();
+  const {
+    rollDice: roll3dDice,
+    isReady: is3dDiceReady,
+    isRolling,
+  } = useDiceRoller();
   const { rolls, setRolls } = useCampaignRolls();
   const { data: session } = authClient.useSession();
   /** biome-ignore lint/suspicious/noExplicitAny: Pusher channel type */
@@ -86,8 +91,8 @@ export function DiceRoller({ campaignId }: { campaignId: string }) {
       ],
       modifier,
     });
-    const fearDie = results.rolls[0].value;
-    const hopeDie = results.rolls[1].value;
+    const hopeDie = results.rolls[0].value;
+    const fearDie = results.rolls[1].value;
 
     const newRoll: DualityDiceRoll = {
       hopeDie,
@@ -138,6 +143,14 @@ export function DiceRoller({ campaignId }: { campaignId: string }) {
         classNames: {
           description: "!text-popover-foreground/90",
         },
+      });
+    }
+
+    if (newRoll.rollType === "critical") {
+      confetti({
+        particleCount: 250,
+        spread: 300,
+        origin: { y: 0.6 },
       });
     }
   };
@@ -249,7 +262,11 @@ export function DiceRoller({ campaignId }: { campaignId: string }) {
             options={characters ?? []}
           />
           <div className="flex items-center gap-4 mb-4">
-            <Button onClick={rollDualityDice} className="flex-1">
+            <Button
+              onClick={rollDualityDice}
+              className="flex-1"
+              disabled={!is3dDiceReady || isRolling}
+            >
               Roll Duality!
             </Button>
 
@@ -328,7 +345,11 @@ export function DiceRoller({ campaignId }: { campaignId: string }) {
 
           {hasDice && (
             <div className="flex justify-center pt-4">
-              <Button className="flex-1" onClick={rollDice}>
+              <Button
+                className="flex-1"
+                onClick={rollDice}
+                disabled={!is3dDiceReady || isRolling}
+              >
                 Roll Dice
               </Button>
             </div>

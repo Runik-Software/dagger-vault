@@ -19,6 +19,7 @@ interface DiceContextType {
     options?: DiceRollOptions,
   ) => Promise<RawDiceRollResult>;
   isReady: boolean;
+  isRolling: boolean;
 }
 
 interface DiceProviderProps {
@@ -28,6 +29,7 @@ interface DiceProviderProps {
 export const DiceContext = createContext<DiceContextType>({
   rollDice: async () => ({ rolls: [], modifier: 0, total: 0 }),
   isReady: false,
+  isRolling: false,
 });
 
 export const useDiceRoller = () => useContext(DiceContext);
@@ -100,6 +102,12 @@ export const DiceProvider = ({ children }: DiceProviderProps) => {
         throw new Error("Dice are already rolling");
       }
 
+      // Clear any pending timeout from the previous roll
+      if (clearTimeoutRef.current) {
+        clearTimeout(clearTimeoutRef.current);
+        clearTimeoutRef.current = null;
+      }
+
       diceBoxRef.current.clear();
       setDiceRolling(true);
 
@@ -127,7 +135,7 @@ export const DiceProvider = ({ children }: DiceProviderProps) => {
   };
 
   return (
-    <DiceContext.Provider value={{ rollDice, isReady }}>
+    <DiceContext.Provider value={{ rollDice, isReady, isRolling: diceRolling }}>
       {children}
     </DiceContext.Provider>
   );
