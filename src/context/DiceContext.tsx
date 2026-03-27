@@ -7,10 +7,17 @@ import DiceBox from "@3d-dice/dice-box";
 import DiceParser from "@3d-dice/dice-parser-interface";
 import type React from "react";
 import { createContext, useContext, useEffect, useRef, useState } from "react";
-import type { DiceRollResult } from "@/schema";
+import type { AdvancedNotation, DiceRoll, RawDiceRollResult } from "@/lib/dice";
+
+interface DiceRollOptions {
+  theme: string;
+}
 
 interface DiceContextType {
-  rollDice: (notation: string) => Promise<DiceRollResult>;
+  rollDice: (
+    notation: AdvancedNotation,
+    options?: DiceRollOptions,
+  ) => Promise<RawDiceRollResult>;
   isReady: boolean;
 }
 
@@ -19,27 +26,18 @@ interface DiceProviderProps {
 }
 
 export const DiceContext = createContext<DiceContextType>({
-  rollDice: async () => ({
-    dice: [],
-    value: 0,
-    type: "expressionroll",
-    ops: [],
-  }),
+  rollDice: async () => ({ rolls: [], modifier: 0, total: 0 }),
   isReady: false,
 });
 
 export const useDiceRoller = () => useContext(DiceContext);
 
 export const DiceProvider = ({ children }: DiceProviderProps) => {
-  // Use a ref to hold the actual instance
   const diceBoxRef = useRef<any>(null);
   const drpRef = useRef<any>(null);
-  // const diceResultsRef = useRef<any>(null);
   const [isReady, setIsReady] = useState(false);
-  const rollPromiseResolverRef = useRef<{
-    resolve: (result: DiceRollResult) => void;
-    reject: (error: Error) => void;
-  } | null>(null);
+  const [diceRolling, setDiceRolling] = useState(false);
+  const clearTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     // 1. Create a NEW instance only when this component mounts
@@ -57,39 +55,12 @@ export const DiceProvider = ({ children }: DiceProviderProps) => {
 
     diceBoxRef.current = box;
     drpRef.current = new DiceParser();
-    // diceResultsRef.current = new DisplayResults("#dice-box");
 
-    // 2. Init THIS specific instance
-    box.init().then(() => {
+    box.init().then(async () => {
       setIsReady(true);
+      await box.loadTheme("rust");
     });
 
-    // 3. Set up your callbacks on this instance
-    box.onRollComplete = (results: DiceRollResult) => {
-      const rerolls = drpRef.current.handleRerolls(results);
-      if (rerolls.length) {
-        rerolls.forEach((roll: { groupId: string }) => {
-          box.add(roll, roll.groupId);
-        });
-        return;
-      }
-
-      console.log("Final dice results:", results);
-
-      const finalResults = drpRef.current.parseFinalResults(results);
-
-      // Resolve the pending promise if one exists
-      if (rollPromiseResolverRef.current) {
-        rollPromiseResolverRef.current.resolve(finalResults);
-        rollPromiseResolverRef.current = null;
-      }
-
-      setTimeout(() => {
-        box.clear();
-      }, 5000);
-    };
-
-    // 4. CLEANUP
     return () => {
       console.log("Cleaning up DiceBox...");
       // Tell the dice box to stop and clear its canvas/workers
@@ -102,23 +73,57 @@ export const DiceProvider = ({ children }: DiceProviderProps) => {
     };
   }, []);
 
-  const rollDice = (notation: string): Promise<DiceRollResult> => {
-    return new Promise((resolve, reject) => {
+  const setClearTimeout = () => {
+    // Clear any existing timeout
+    if (clearTimeoutRef.current) {
+      clearTimeout(clearTimeoutRef.current);
+    }
+
+    // Set a new timeout to clear the dice after 5 seconds
+    clearTimeoutRef.current = setTimeout(() => {
+      if (diceBoxRef.current) {
+        diceBoxRef.current.clear();
+      }
+      clearTimeoutRef.current = null;
+    }, 5000);
+  };
+
+  const rollDice = async (
+    notation: AdvancedNotation,
+  ): Promise<RawDiceRollResult> => {
+    try {
       if (!isReady || !diceBoxRef.current) {
-        reject(new Error("Dice roller is not ready"));
-        return;
+        throw new Error("Dice roller is not ready");
       }
 
-      // Store the resolver for when the roll completes
-      rollPromiseResolverRef.current = { resolve, reject };
-
-      try {
-        diceBoxRef.current.show().roll(drpRef.current.parseNotation(notation));
-      } catch (error) {
-        reject(error);
-        rollPromiseResolverRef.current = null;
+      if (diceRolling) {
+        throw new Error("Dice are already rolling");
       }
-    });
+
+      diceBoxRef.current.clear();
+      setDiceRolling(true);
+
+      const results: DiceRoll[] = await diceBoxRef.current
+        .show()
+        .roll(notation.dice);
+
+      console.log("Raw dice results:", results);
+
+      // Set the clear timeout
+      setClearTimeout();
+
+      const total =
+        results.map((r) => r.value).reduce((a, b) => a + b, 0) +
+        (notation.modifier || 0);
+
+      return {
+        rolls: results,
+        modifier: notation.modifier || 0,
+        total,
+      } satisfies RawDiceRollResult;
+    } finally {
+      setDiceRolling(false);
+    }
   };
 
   return (
