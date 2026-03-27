@@ -23,6 +23,7 @@ import {
   type DualityDiceRoll,
   formatDiceRoll,
   formatDualityDieRoll,
+  generateRandomDualityRoll,
   isDualityDiceRoll,
   listDiceRolls,
   type PoolDiceRoll,
@@ -44,6 +45,7 @@ export function DiceRoller({ campaignId }: { campaignId: string }) {
     rollDice: roll3dDice,
     isReady: is3dDiceReady,
     isRolling,
+    setUse3dDice,
   } = useDiceRoller();
   const { rolls, setRolls } = useCampaignRolls();
   const { data: session } = authClient.useSession();
@@ -62,19 +64,27 @@ export function DiceRoller({ campaignId }: { campaignId: string }) {
     null,
   );
   const [sendRollToEveryone, setSendRollToEveryone] = useState<boolean>(true);
+  const [use3dDiceLocal, setUse3dDiceLocal] = useState<boolean>(true);
 
   const showDiceKey = `${campaignId}_showDiceRollPopups`;
   const autoApplyKey = `${campaignId}_autoEnableApplyDiceRolls`;
+  const use3dDiceKey = `${campaignId}_use3dDice`;
 
   useEffect(() => {
     if (typeof window === "undefined") return;
 
     const storedShowDice = localStorage.getItem(showDiceKey);
     const storedAutoApply = localStorage.getItem(autoApplyKey);
+    const stored3dDice = localStorage.getItem(use3dDiceKey);
 
     setShowDiceRollPopups(storedShowDice ? storedShowDice === "true" : true);
     setAutoApplyRolls(storedAutoApply ? storedAutoApply === "true" : true);
-  }, [autoApplyKey, showDiceKey]);
+    setUse3dDiceLocal(stored3dDice ? stored3dDice === "true" : true);
+  }, [autoApplyKey, showDiceKey, use3dDiceKey]);
+
+  useEffect(() => {
+    setUse3dDice(use3dDiceLocal);
+  }, [use3dDiceLocal, setUse3dDice]);
 
   const { data: characters } = useQuery({
     queryKey: ["characters"],
@@ -84,15 +94,24 @@ export function DiceRoller({ campaignId }: { campaignId: string }) {
   });
 
   const rollDualityDice = async () => {
-    const results = await roll3dDice({
-      dice: [
-        { qty: 1, sides: 12, theme: "default", themeColor: "#0b6e00" },
-        { qty: 1, sides: 12, theme: "rust", themeColor: "#6e0005" },
-      ],
-      modifier,
-    });
-    const hopeDie = results.rolls[0].value;
-    const fearDie = results.rolls[1].value;
+    let hopeDie: number;
+    let fearDie: number;
+
+    if (use3dDiceLocal) {
+      const results = await roll3dDice({
+        dice: [
+          { qty: 1, sides: 12, theme: "default", themeColor: "#0b6e00" },
+          { qty: 1, sides: 12, theme: "rust", themeColor: "#6e0005" },
+        ],
+        modifier,
+      });
+      hopeDie = results.rolls[0].value;
+      fearDie = results.rolls[1].value;
+    } else {
+      const rolls = generateRandomDualityRoll();
+      hopeDie = rolls.hopeDie;
+      fearDie = rolls.fearDie;
+    }
 
     const newRoll: DualityDiceRoll = {
       hopeDie,
