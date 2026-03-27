@@ -2,7 +2,6 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { Minus, Plus, X } from "lucide-react";
-import type { Channel } from "pusher-js";
 import { useEffect, useRef, useState } from "react";
 import Select from "react-select";
 import { toast } from "sonner";
@@ -13,11 +12,11 @@ import {
 } from "@/actions";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useCampaignRolls } from "@/context/CampaignRollsContext";
 import { useDiceRoller } from "@/context/DiceContext";
 import { authClient } from "@/lib/auth-client";
 import { dayjs } from "@/lib/dayjs";
 import {
-  type AnyDiceRoll,
   DICE_VALUES,
   type DiceValue,
   type DualityDiceRoll,
@@ -41,8 +40,10 @@ type DicePool = Record<DiceValue, number>;
 
 export function DiceRoller({ campaignId }: { campaignId: string }) {
   const { rollDice: roll3dDice } = useDiceRoller();
+  const { rolls, setRolls } = useCampaignRolls();
   const { data: session } = authClient.useSession();
-  const [rolls, setRolls] = useState<AnyDiceRoll[]>([]);
+  /** biome-ignore lint/suspicious/noExplicitAny: Pusher channel type */
+  const rollChannel = useRef<any>(null);
   const [pool, setPool] = useState<DicePool>(
     Object.fromEntries(DICE_VALUES.map((v) => [v, 0])) as DicePool,
   );
@@ -56,7 +57,6 @@ export function DiceRoller({ campaignId }: { campaignId: string }) {
     null,
   );
   const [sendRollToEveryone, setSendRollToEveryone] = useState<boolean>(true);
-  const rollChannel = useRef<Channel>(null);
 
   const showDiceKey = `${campaignId}_showDiceRollPopups`;
   const autoApplyKey = `${campaignId}_autoEnableApplyDiceRolls`;
@@ -140,7 +140,6 @@ export function DiceRoller({ campaignId }: { campaignId: string }) {
         },
       });
     }
-    setRolls((prev) => [newRoll, ...prev]);
   };
 
   const addDie = (value: DiceValue) => {
@@ -191,7 +190,6 @@ export function DiceRoller({ campaignId }: { campaignId: string }) {
         richColors: true,
       });
     }
-    setRolls((prev) => [poolResult, ...prev]);
     setPool(Object.fromEntries(DICE_VALUES.map((v) => [v, 0])) as DicePool);
   };
 
@@ -215,28 +213,12 @@ export function DiceRoller({ campaignId }: { campaignId: string }) {
       `private-campaign-${campaignId}-rolls`,
     );
 
-    rollChannel.current.bind("client-newRoll", (roll: AnyDiceRoll) => {
-      if (showDiceRollPopups) {
-        if (isDualityDiceRoll(roll)) {
-          toast(formatDualityDieRoll(roll), {
-            richColors: false,
-          });
-        } else {
-          toast(`${roll.user} rolled ${roll.total}`, {
-            richColors: true,
-            description: formatDiceRoll(roll),
-          });
-        }
-      }
-      setRolls((old) => [roll, ...old]);
-    });
-
     return () => {
       rollChannel.current?.unbind_all();
       pusher.unsubscribe(`private-campaign-${campaignId}-rolls`);
       pusher.disconnect();
     };
-  }, [campaignId, showDiceRollPopups]);
+  }, [campaignId]);
 
   return (
     <div className=" w-full flex flex-col items-center gap-4 p-6">

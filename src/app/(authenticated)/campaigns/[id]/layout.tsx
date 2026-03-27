@@ -8,6 +8,7 @@ import { useMemo } from "react";
 import { getCampaign } from "@/actions";
 import { CampaignOverview } from "@/components/CampaignOverview";
 import { Button } from "@/components/ui/button";
+import { CampaignRollsProvider } from "@/context/CampaignRollsContext";
 import { authClient } from "@/lib/auth-client";
 
 export default function CampaignLayout({
@@ -50,78 +51,80 @@ export default function CampaignLayout({
   }
 
   return (
-    <div className="container mx-auto p-6">
-      <Link href="/campaigns" className="mb-4 inline-block">
-        <Button>
-          <SquareArrowLeft /> Back
-        </Button>
-      </Link>
-      <CampaignOverview campaign={campaign} />
+    <CampaignRollsProvider campaignId={campaignId}>
+      <div className="container mx-auto p-6">
+        <Link href="/campaigns" className="mb-4 inline-block">
+          <Button>
+            <SquareArrowLeft /> Back
+          </Button>
+        </Link>
+        <CampaignOverview campaign={campaign} />
 
-      <div className="w-full">
-        <div className="mb-4">
-          <div className="flex flex-wrap gap-2">
-            <Link href={`/campaigns/${campaignId}`}>
-              <Button
-                variant={
-                  pathname === `/campaigns/${campaignId}`
-                    ? "default"
-                    : "outline"
-                }
-              >
-                Characters
-              </Button>
-            </Link>
-            <Link href={`/campaigns/${campaignId}/dice`}>
-              <Button
-                variant={
-                  pathname === `/campaigns/${campaignId}/dice`
-                    ? "default"
-                    : "outline"
-                }
-              >
-                Dice Rolls
-              </Button>
-            </Link>
-            <Link href={`/campaigns/${campaignId}/personal-space`}>
-              <Button
-                variant={
-                  pathname === `/campaigns/${campaignId}/personal-space`
-                    ? "default"
-                    : "outline"
-                }
-              >
-                Personal Space
-              </Button>
-            </Link>
-            <Link href={`/campaigns/${campaignId}/settings`}>
-              <Button
-                variant={
-                  pathname === `/campaigns/${campaignId}/settings`
-                    ? "default"
-                    : "outline"
-                }
-              >
-                Settings
-              </Button>
-            </Link>
-            {userOwnsCampaign && (
-              <Link href={`/campaigns/${campaignId}/users`}>
+        <div className="w-full">
+          <div className="mb-4">
+            <div className="flex flex-wrap gap-2">
+              <Link href={`/campaigns/${campaignId}`}>
                 <Button
                   variant={
-                    pathname === `/campaigns/${campaignId}/users`
+                    pathname === `/campaigns/${campaignId}`
                       ? "default"
                       : "outline"
                   }
                 >
-                  Users
+                  Characters
                 </Button>
               </Link>
-            )}
+              <Link href={`/campaigns/${campaignId}/dice`}>
+                <Button
+                  variant={
+                    pathname === `/campaigns/${campaignId}/dice`
+                      ? "default"
+                      : "outline"
+                  }
+                >
+                  Dice Rolls
+                </Button>
+              </Link>
+              <Link href={`/campaigns/${campaignId}/personal-space`}>
+                <Button
+                  variant={
+                    pathname === `/campaigns/${campaignId}/personal-space`
+                      ? "default"
+                      : "outline"
+                  }
+                >
+                  Personal Space
+                </Button>
+              </Link>
+              <Link href={`/campaigns/${campaignId}/settings`}>
+                <Button
+                  variant={
+                    pathname === `/campaigns/${campaignId}/settings`
+                      ? "default"
+                      : "outline"
+                  }
+                >
+                  Settings
+                </Button>
+              </Link>
+              {userOwnsCampaign && (
+                <Link href={`/campaigns/${campaignId}/users`}>
+                  <Button
+                    variant={
+                      pathname === `/campaigns/${campaignId}/users`
+                        ? "default"
+                        : "outline"
+                    }
+                  >
+                    Users
+                  </Button>
+                </Link>
+              )}
+            </div>
           </div>
+          <div>{children}</div>
         </div>
-        <div>{children}</div>
       </div>
-    </div>
+    </CampaignRollsProvider>
   );
 }
