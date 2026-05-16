@@ -2,7 +2,12 @@
 
 import { and, eq, sql } from "drizzle-orm";
 import { headers } from "next/headers";
-import { campaign, character, userCampaign } from "@/db/schema";
+import {
+  type CampaignSettings,
+  campaign,
+  character,
+  userCampaign,
+} from "@/db/schema";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { pusher } from "@/lib/pusher";
@@ -246,39 +251,39 @@ export const updateCharacter = async (id: string, data: Partial<Character>) => {
       ...data,
       hope: data.hope
         ? {
-            current: Math.min(
-              data.hope.current ?? toUpdate.hope.current,
-              data.hope.max ?? toUpdate.hope.max,
-            ),
-            max: data.hope.max ?? toUpdate.hope.max,
-          }
+          current: Math.min(
+            data.hope.current ?? toUpdate.hope.current,
+            data.hope.max ?? toUpdate.hope.max,
+          ),
+          max: data.hope.max ?? toUpdate.hope.max,
+        }
         : undefined,
       stress: data.stress
         ? {
-            current: Math.min(
-              data.stress.current ?? toUpdate.stress.current,
-              data.stress.max ?? toUpdate.stress.max,
-            ),
-            max: data.stress.max ?? toUpdate.stress.max,
-          }
+          current: Math.min(
+            data.stress.current ?? toUpdate.stress.current,
+            data.stress.max ?? toUpdate.stress.max,
+          ),
+          max: data.stress.max ?? toUpdate.stress.max,
+        }
         : undefined,
       armourSlots: data.armourSlots
         ? {
-            current: Math.min(
-              data.armourSlots.current ?? toUpdate.armourSlots.current,
-              data.armourSlots.max ?? toUpdate.armourSlots.max,
-            ),
-            max: data.armourSlots.max ?? toUpdate.armourSlots.max,
-          }
+          current: Math.min(
+            data.armourSlots.current ?? toUpdate.armourSlots.current,
+            data.armourSlots.max ?? toUpdate.armourSlots.max,
+          ),
+          max: data.armourSlots.max ?? toUpdate.armourSlots.max,
+        }
         : undefined,
       hitpoints: data.hitpoints
         ? {
-            current: Math.min(
-              data.hitpoints.current ?? toUpdate.hitpoints.current,
-              data.hitpoints.max ?? toUpdate.hitpoints.max,
-            ),
-            max: data.hitpoints.max ?? toUpdate.hitpoints.max,
-          }
+          current: Math.min(
+            data.hitpoints.current ?? toUpdate.hitpoints.current,
+            data.hitpoints.max ?? toUpdate.hitpoints.max,
+          ),
+          max: data.hitpoints.max ?? toUpdate.hitpoints.max,
+        }
         : undefined,
     })
     .where(eq(character.id, id))
@@ -329,4 +334,23 @@ export const applyCharacterDelta = async (
 
 export const deleteCharacter = async (id: string) => {
   await db.delete(character).where(eq(character.id, id));
+};
+
+export const updateCampaignSettings = async (
+  campaignId: string,
+  settings: Partial<CampaignSettings>,
+) => {
+  if (!(await doesUserOwnCampaign(campaignId))) {
+    throw new Error("User does not own campaign");
+  }
+
+  const [updated] = await db
+    .update(campaign)
+    .set({
+      settings: sql`${campaign.settings} || ${JSON.stringify(settings)}`,
+    })
+    .where(eq(campaign.id, campaignId))
+    .returning();
+
+  return updated;
 };

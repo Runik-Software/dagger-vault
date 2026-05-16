@@ -6,7 +6,7 @@ export type DualityDiceRoll = {
     hopeDie: number;
     fearDie: number;
     modifier: number;
-    rollType: "hope" | "fear" | "critical";
+    rollType: "hope" | "fear" | "critical" | "reaction";
     timestamp: string;
 };
 
@@ -97,13 +97,14 @@ export const formatDualityDieRoll = ({
     rollType,
 }: DualityDiceRoll): string => {
     const total = hopeDie + fearDie + modifier;
-    const emoji = rollType === "hope" ? "🙏" : rollType === "fear" ? "💀" : "🏆";
+    const emoji = rollType === "hope" ? "🙏" : rollType === "fear" ? "💀" : rollType === "reaction" ? "💥" : "🏆";
     let message = character
         ? `${character.name} (${user}) rolled a ${total} `
         : `${user} rolled a ${total} `;
 
     if (rollType === "hope") message += "with Hope";
     else if (rollType === "fear") message += "with Fear";
+    else if (rollType === "reaction") message += "- Reaction";
     else message += "- Critical success";
 
     return `${emoji} ${message}`;

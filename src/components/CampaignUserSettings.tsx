@@ -70,7 +70,7 @@ export default function CampaignUserSettings({
   return (
     <Card className="">
       <CardHeader>
-        <CardTitle>Campaign Settings</CardTitle>
+        <CardTitle>Campaign User Settings</CardTitle>
         <CardDescription>
           Reload to apply settings. These are stored locally and will not sync
           between devices.

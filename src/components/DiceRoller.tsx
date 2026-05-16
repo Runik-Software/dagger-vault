@@ -3,11 +3,12 @@
 import { useQuery } from "@tanstack/react-query";
 import confetti from "canvas-confetti";
 import { Minus, Plus, X } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Select from "react-select";
 import { toast } from "sonner";
 import {
   applyCharacterDelta,
+  getCampaign,
   getCharacters,
   updateCampaignFear,
 } from "@/actions";
@@ -41,6 +42,17 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
 type DicePool = Record<DiceValue, number>;
 
 export function DiceRoller({ campaignId }: { campaignId: string }) {
+  const { data: campaign } = useQuery({
+    queryKey: ["campaign", campaignId],
+    queryFn: () => {
+      return getCampaign(campaignId);
+    },
+  });
+
+  const fearTrackerEnabled = useMemo(
+    () => campaign?.settings?.fearEnabled,
+    [campaign],
+  );
   const {
     rollDice: roll3dDice,
     isReady: is3dDiceReady,
@@ -93,7 +105,7 @@ export function DiceRoller({ campaignId }: { campaignId: string }) {
     },
   });
 
-  const rollDualityDice = async () => {
+  const rollDualityDice = async ({ isReaction }: { isReaction: boolean }) => {
     let hopeDie: number;
     let fearDie: number;
 
@@ -119,39 +131,48 @@ export function DiceRoller({ campaignId }: { campaignId: string }) {
       character: rollAsCharacter,
       user: session?.user?.name || "Unknown",
       modifier,
-      rollType:
-        hopeDie === fearDie ? "critical" : hopeDie > fearDie ? "hope" : "fear",
+      rollType: isReaction
+        ? "reaction"
+        : hopeDie === fearDie
+          ? "critical"
+          : hopeDie > fearDie
+            ? "hope"
+            : "fear",
       timestamp: new Date().toISOString(),
     };
     if (rollChannel.current && sendRollToEveryone) {
       rollChannel.current.trigger("client-newRoll", newRoll);
     }
 
-    if (newRoll.rollType === "fear") {
-      await updateCampaignFear(campaignId, 1, true);
-    }
     let description: string | undefined;
-    if (rollAsCharacter && autoApplyRolls) {
-      description = "Roll applied automatically";
-      if (newRoll.rollType === "hope") {
-        await applyCharacterDelta(rollAsCharacter.id, { hope: 1 });
-      }
-      if (newRoll.rollType === "critical") {
-        await applyCharacterDelta(rollAsCharacter.id, {
-          hope: 1,
-          stress: -1,
-        });
-      }
+    if (newRoll.rollType === "reaction") {
+      description = "This is a Reaction roll, which has no automatic effects.";
     } else {
-      if (newRoll.rollType === "hope") {
-        description = "Increase Hope by 1 using the character sheet controls";
+      if (newRoll.rollType === "fear" && fearTrackerEnabled) {
+        await updateCampaignFear(campaignId, 1, true);
       }
-      if (newRoll.rollType === "fear") {
-        description = "The GM gains 1 Fear for the campaign";
-      }
-      if (newRoll.rollType === "critical") {
-        description =
-          "Increase Hope by 1 and decrease Stress by 1 using the character sheet controls";
+      if (rollAsCharacter && autoApplyRolls) {
+        description = "Roll applied automatically";
+        if (newRoll.rollType === "hope") {
+          await applyCharacterDelta(rollAsCharacter.id, { hope: 1 });
+        }
+        if (newRoll.rollType === "critical") {
+          await applyCharacterDelta(rollAsCharacter.id, {
+            hope: 1,
+            stress: -1,
+          });
+        }
+      } else {
+        if (newRoll.rollType === "hope") {
+          description = "Increase Hope by 1 using the character sheet controls";
+        }
+        if (newRoll.rollType === "fear") {
+          description = "The GM gains 1 Fear for the campaign";
+        }
+        if (newRoll.rollType === "critical") {
+          description =
+            "Increase Hope by 1 and decrease Stress by 1 using the character sheet controls";
+        }
       }
     }
 
@@ -271,26 +292,19 @@ export function DiceRoller({ campaignId }: { campaignId: string }) {
                 : "Keep rolls private"}
             </Label>
           </div>
-          <Select
-            className="mb-4"
-            placeholder="Roll as character"
-            isClearable
-            onChange={(c) => setRollAsCharacter(c)}
-            getOptionLabel={(c) => c.name}
-            getOptionValue={(c) => c.id}
-            options={characters ?? []}
-          />
-          <div className="flex items-center gap-4 mb-4">
-            <Button
-              onClick={rollDualityDice}
-              className="flex-1"
-              disabled={!is3dDiceReady || isRolling}
-            >
-              Roll Duality!
-            </Button>
-
+          <div className="flex flex-col md:flex-row items-stretch md:items-center gap-4 mb-4">
+            <div className="md:flex-1">
+              <Select
+                placeholder="Roll as character"
+                isClearable
+                onChange={(c) => setRollAsCharacter(c)}
+                getOptionLabel={(c) => c.name}
+                getOptionValue={(c) => c.id}
+                options={characters ?? []}
+              />
+            </div>
             {rollAsCharacter && (
-              <div className="flex items-center space-x-2">
+              <div className="flex items-center space-x-2 md:shrink-0">
                 <Switch
                   checked={autoApplyRolls}
                   onCheckedChange={setAutoApplyRolls}
@@ -299,6 +313,23 @@ export function DiceRoller({ campaignId }: { campaignId: string }) {
                 <Label htmlFor="apply-rolls">Auto apply rolls</Label>
               </div>
             )}
+          </div>
+          <div className="flex flex-col md:flex-row gap-4 mb-4">
+            <Button
+              onClick={() => rollDualityDice({ isReaction: false })}
+              className="md:flex-1"
+              disabled={!is3dDiceReady || isRolling}
+            >
+              Roll Duality!
+            </Button>
+
+            <Button
+              onClick={() => rollDualityDice({ isReaction: true })}
+              className="md:flex-1"
+              disabled={!is3dDiceReady || isRolling}
+            >
+              Roll Reaction!
+            </Button>
           </div>
 
           <div className="flex flex-wrap justify-center gap-3">
@@ -339,10 +370,8 @@ export function DiceRoller({ campaignId }: { campaignId: string }) {
             </Button>
           </div>
           {/* Modifier Controls */}
-          <div className="flex items-center justify-between m-2 rounded-lg border border-primary">
-            <span className="text-sm uppercase font-semibold ml-2">
-              Modifier
-            </span>
+          <div className="flex flex-col items-center gap-2 m-2 rounded-lg border border-primary p-2">
+            <span className="text-sm uppercase font-semibold">Modifier</span>
             <div className="flex items-center gap-3">
               <Button
                 onClick={() => setModifier((m) => m - 1)}

@@ -1,14 +1,12 @@
 "use client";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { MinusCircle, PlusCircle, Skull } from "lucide-react";
 import { useEffect, useMemo } from "react";
 import { updateCampaignFear } from "@/actions";
 import { authClient } from "@/lib/auth-client";
 import { createPusherClient } from "@/lib/pusher";
 import type { Campaign } from "@/schema";
-import { Button } from "./ui/button";
+import { FearTracker } from "./FearTracker";
 import { Card, CardContent } from "./ui/card";
-import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
 
 export function CampaignOverview({ campaign }: { campaign: Campaign }) {
   const { data: session } = authClient.useSession();
@@ -55,58 +53,13 @@ export function CampaignOverview({ campaign }: { campaign: Campaign }) {
         {campaign.description && (
           <p className="mt-2 text-stone-700">{campaign.description}</p>
         )}
-        <div className="w-full flex items-center border-2 border-accent bg-destructive/10 rounded-2xl px-2">
-          {userOwnsCampaign && (
-            <div className="flex items-center">
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    disabled={campaign.fear <= 0}
-                    className="rounded-full"
-                    size="icon"
-                    onClick={() => updateFearMutation.mutate(-1)}
-                  >
-                    <MinusCircle />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>Remove Fear</TooltipContent>
-              </Tooltip>
-            </div>
-          )}
-
-          <div className="flex-1">
-            <div className="grid grid-cols-6 sm:grid-cols-12 gap-1 justify-items-center">
-              {Array.from({ length: 12 }).map((_, i) => {
-                const filled = i < campaign.fear;
-                return (
-                  <Skull
-                    // biome-ignore lint/suspicious/noArrayIndexKey: Just an index
-                    key={`skull-${i}`}
-                    className={`${filled ? "bg-destructive text-gray-800 rounded-full" : ""}`}
-                  />
-                );
-              })}
-            </div>
-          </div>
-
-          {userOwnsCampaign && (
-            <div className="flex items-center">
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    disabled={campaign.fear >= 12}
-                    className="rounded-full"
-                    size="icon"
-                    onClick={() => updateFearMutation.mutate(1)}
-                  >
-                    <PlusCircle />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>Add Fear</TooltipContent>
-              </Tooltip>
-            </div>
-          )}
-        </div>
+        {campaign.settings?.fearEnabled && (
+          <FearTracker
+            fear={campaign.fear}
+            userOwnsCampaign={userOwnsCampaign}
+            updateFear={(modifier) => updateFearMutation.mutate(modifier)}
+          />
+        )}
       </CardContent>
     </Card>
   );

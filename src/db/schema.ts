@@ -34,6 +34,10 @@ export const character = pgTable("characters", {
     .notNull(),
 });
 
+export type CampaignSettings = {
+  fearEnabled: boolean;
+}
+
 export const campaign = pgTable("campaigns", {
   id: uuid("id").primaryKey().defaultRandom(),
   name: text("name").notNull(),
@@ -43,6 +47,7 @@ export const campaign = pgTable("campaigns", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
   description: text("description"),
   fear: integer("fear").notNull().default(0),
+  settings: jsonb('settings').$type<CampaignSettings>().default({ fearEnabled: true })
 });
 
 export const userCampaign = pgTable("user_campaign", {
