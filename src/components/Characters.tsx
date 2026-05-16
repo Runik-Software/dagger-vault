@@ -202,6 +202,7 @@ export function Characters({ campaignId }: { campaignId: string }) {
                 onUpdate={(data) => handleUpdate(character.id, data)}
                 onEdit={handleEdit}
                 onDelete={() => handleDeleteConfirm(character.id)}
+                campaignId={campaignId}
               />
             ))}
             <Button

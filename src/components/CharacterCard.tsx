@@ -6,7 +6,7 @@ import {
   Trash2,
   User,
 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import {
@@ -17,6 +17,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import type { Character } from "@/schema";
 import { GoldTracker } from "./GoldTracker";
+import { IconResourceTracker } from "./IconResourceTracker";
 import { ResourceTracker } from "./ResourceTracker";
 import {
   AlertDialog,
@@ -35,6 +36,7 @@ interface CharacterCardProps {
   onUpdate: (updates: Partial<Character>) => void;
   onEdit: (character: Character) => void;
   onDelete: () => void;
+  campaignId: string;
 }
 
 export default function CharacterCard({
@@ -42,11 +44,22 @@ export default function CharacterCard({
   onUpdate,
   onEdit,
   onDelete,
+  campaignId,
 }: CharacterCardProps) {
   const [notesOpen, setNotesOpen] = useState<boolean>(false);
   const [updatedNotes, setUpdatedNotes] = useState<string>(
     `${character.notes}`,
   );
+  const [useIconDisplay, setUseIconDisplay] = useState<boolean>(true);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const iconDisplayKey = `${campaignId}_useIconStatDisplay`;
+    const stored = localStorage.getItem(iconDisplayKey);
+    if (stored !== null) {
+      setUseIconDisplay(stored === "true");
+    }
+  }, [campaignId]);
 
   return (
     <Card className="overflow-hidden">
@@ -166,30 +179,69 @@ export default function CharacterCard({
         </Collapsible>
 
         <div className="space-y-4">
-          <ResourceTracker
-            label="Hit Points"
-            field={character.hitpoints}
-            name="hitpoints"
-            onUpdate={onUpdate}
-          />
-          <ResourceTracker
-            label="Hope"
-            field={character.hope}
-            name="hope"
-            onUpdate={onUpdate}
-          />
-          <ResourceTracker
-            label="Stress"
-            field={character.stress}
-            name="stress"
-            onUpdate={onUpdate}
-          />
-          <ResourceTracker
-            label="Armour Slots"
-            field={character.armourSlots}
-            name="armourSlots"
-            onUpdate={onUpdate}
-          />
+          {useIconDisplay ? (
+            <>
+              <IconResourceTracker
+                label="Hit Points"
+                field={character.hitpoints}
+                name="hitpoints"
+                onUpdate={onUpdate}
+                iconType="heart"
+                fillColor="text-red-500"
+              />
+              <IconResourceTracker
+                label="Hope"
+                field={character.hope}
+                name="hope"
+                onUpdate={onUpdate}
+                iconType="star"
+                fillColor="text-amber-500"
+              />
+              <IconResourceTracker
+                label="Stress"
+                field={character.stress}
+                name="stress"
+                onUpdate={onUpdate}
+                iconType="zap"
+                fillColor="text-orange-500"
+              />
+              <IconResourceTracker
+                label="Armour Slots"
+                field={character.armourSlots}
+                name="armourSlots"
+                onUpdate={onUpdate}
+                iconType="shield"
+                fillColor="text-blue-500"
+              />
+            </>
+          ) : (
+            <>
+              <ResourceTracker
+                label="Hit Points"
+                field={character.hitpoints}
+                name="hitpoints"
+                onUpdate={onUpdate}
+              />
+              <ResourceTracker
+                label="Hope"
+                field={character.hope}
+                name="hope"
+                onUpdate={onUpdate}
+              />
+              <ResourceTracker
+                label="Stress"
+                field={character.stress}
+                name="stress"
+                onUpdate={onUpdate}
+              />
+              <ResourceTracker
+                label="Armour Slots"
+                field={character.armourSlots}
+                name="armourSlots"
+                onUpdate={onUpdate}
+              />
+            </>
+          )}
           <GoldTracker
             gold={character.gold}
             onUpdate={(gold) => onUpdate({ gold })}

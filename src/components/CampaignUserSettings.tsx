@@ -22,11 +22,13 @@ export default function CampaignUserSettings({
   const [autoEnableApplyDiceRolls, setAutoEnableApplyDiceRolls] =
     useState(true);
   const [use3dDice, setUse3dDice] = useState(true);
+  const [useIconStatDisplay, setUseIconStatDisplay] = useState(true);
   const [loaded, setLoaded] = useState(false);
 
   const showDiceKey = `${campaignId}_showDiceRollPopups`;
   const autoApplyKey = `${campaignId}_autoEnableApplyDiceRolls`;
   const use3dDiceKey = `${campaignId}_use3dDice`;
+  const useIconStatDisplayKey = `${campaignId}_useIconStatDisplay`;
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -34,6 +36,9 @@ export default function CampaignUserSettings({
     const storedShowDice = localStorage.getItem(showDiceKey);
     const storedAutoApply = localStorage.getItem(autoApplyKey);
     const stored3dDice = localStorage.getItem(use3dDiceKey);
+    const storedUseIconStatDisplay = localStorage.getItem(
+      useIconStatDisplayKey,
+    );
 
     if (storedShowDice !== null) {
       setShowDiceRollPopups(storedShowDice === "true");
@@ -47,8 +52,12 @@ export default function CampaignUserSettings({
       setUse3dDice(stored3dDice === "true");
     }
 
+    if (storedUseIconStatDisplay !== null) {
+      setUseIconStatDisplay(storedUseIconStatDisplay === "true");
+    }
+
     setLoaded(true);
-  }, [showDiceKey, autoApplyKey, use3dDiceKey]);
+  }, [showDiceKey, autoApplyKey, use3dDiceKey, useIconStatDisplayKey]);
 
   useEffect(() => {
     if (!loaded) return;
@@ -64,6 +73,11 @@ export default function CampaignUserSettings({
     if (!loaded) return;
     localStorage.setItem(use3dDiceKey, String(use3dDice));
   }, [use3dDice, use3dDiceKey, loaded]);
+
+  useEffect(() => {
+    if (!loaded) return;
+    localStorage.setItem(useIconStatDisplayKey, String(useIconStatDisplay));
+  }, [useIconStatDisplay, useIconStatDisplayKey, loaded]);
 
   if (!loaded) return null;
 
@@ -108,6 +122,16 @@ export default function CampaignUserSettings({
             id="use3dDice"
             checked={use3dDice}
             onCheckedChange={setUse3dDice}
+          />
+        </div>
+        <div className="flex items-center justify-between">
+          <Label htmlFor="useIconStatDisplay" className="text-sm font-medium">
+            Use icon display for character stats
+          </Label>
+          <Switch
+            id="useIconStatDisplay"
+            checked={useIconStatDisplay}
+            onCheckedChange={setUseIconStatDisplay}
           />
         </div>{" "}
       </CardContent>
