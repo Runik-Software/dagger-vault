@@ -36,42 +36,39 @@ export const IconResourceTracker = ({
   };
 
   const getIcon = (filled: boolean) => {
-    const iconProps = {
-      className: `h-8 w-8 ${filled ? fillColor : ""}`,
-      strokeWidth: 2,
-    };
+    const baseClassName = `h-8 w-8 ${filled ? fillColor : ""}`;
 
     switch (iconType) {
       case "heart":
         return (
           <Heart
-            {...iconProps}
-            fill={filled ? fillColor : "none"}
-            stroke={filled ? fillColor : "currentColor"}
+            className={baseClassName}
+            strokeWidth={2}
+            fill={filled ? "currentColor" : "none"}
           />
         );
       case "star":
         return (
           <Star
-            {...iconProps}
-            fill={filled ? fillColor : "none"}
-            stroke={filled ? fillColor : "currentColor"}
+            className={baseClassName}
+            strokeWidth={2}
+            fill={filled ? "currentColor" : "none"}
           />
         );
       case "zap":
         return (
           <Zap
-            {...iconProps}
-            fill={filled ? fillColor : "none"}
-            stroke={filled ? fillColor : "currentColor"}
+            className={baseClassName}
+            strokeWidth={2}
+            fill={filled ? "currentColor" : "none"}
           />
         );
       case "shield":
         return (
           <Shield
-            {...iconProps}
-            fill={filled ? fillColor : "none"}
-            stroke={filled ? fillColor : "currentColor"}
+            className={baseClassName}
+            strokeWidth={2}
+            fill={filled ? "currentColor" : "none"}
           />
         );
       default:
