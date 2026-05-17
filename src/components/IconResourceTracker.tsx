@@ -5,7 +5,6 @@ import { Diamond } from "./icons/Diamond";
 import { Heart } from "./icons/Heart";
 import { Lightning } from "./icons/Lightning";
 import { Shield } from "./icons/Shield";
-import { Star } from "./icons/Star";
 import { Button } from "./ui/button";
 
 interface IconResourceTrackerProps {
@@ -79,14 +78,15 @@ export const IconResourceTracker = ({
           <Minus className="h-5 w-5" />
         </Button>
 
-        <div className="flex-1 grid grid-cols-6 gap-1 py-2 px-2 justify-items-center">
+        <div className="flex-1 grid xl:grid-cols-6 grid-cols-4 gap-1 py-2 px-2">
           {Array.from({ length: max }).map((_, idx) => {
             const iconKey = `icon-${iconType}-${name}-${idx}`;
             return (
               <Button
                 key={iconKey}
                 variant="ghost"
-                className="rounded-full h-16 w-16"
+                size="icon"
+                className="rounded-full h-8 w-8 lg:h-10 lg:w-10 col-span-1"
                 onClick={() => setResourceValue(idx + 1)}
               >
                 {getIcon(idx < current)}
