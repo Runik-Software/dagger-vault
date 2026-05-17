@@ -14,6 +14,7 @@ import {
 import CharacterCard from "@/components/CharacterCard";
 import CharacterDialog from "@/components/CharacterDialog";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { authClient } from "@/lib/auth-client";
 import { createPusherClient } from "@/lib/pusher";
 import type { Character, EditCharacter } from "@/schema";
@@ -26,20 +27,21 @@ export function Characters({ campaignId }: { campaignId: string }) {
     null,
   );
 
-  const { data: characters, isPending: charactersPending } = useQuery({
-    queryKey: ["characters"],
+  const { data: charactersData, isLoading: charactersLoading } = useQuery({
+    queryKey: ["characters", campaignId],
     queryFn: () => {
       return getCharacters(campaignId);
     },
-    initialData: [],
   });
+
+  const characters = charactersData ?? [];
 
   const addCharacterMutation = useMutation({
     mutationFn: (newChar: EditCharacter) => {
       return createCharacter(campaignId, newChar);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["characters"] });
+      queryClient.invalidateQueries({ queryKey: ["characters", campaignId] });
       toast.success("Character created");
     },
   });
@@ -55,7 +57,7 @@ export function Characters({ campaignId }: { campaignId: string }) {
       return await updateCharacter(id, data);
     },
     onError: () => {
-      queryClient.invalidateQueries({ queryKey: ["characters"] });
+      queryClient.invalidateQueries({ queryKey: ["characters", campaignId] });
       toast.error("Failed to update character");
     },
   });
@@ -69,7 +71,7 @@ export function Characters({ campaignId }: { campaignId: string }) {
       await deleteCharacter(id);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["characters"] });
+      queryClient.invalidateQueries({ queryKey: ["characters", campaignId] });
       toast.success("Character deleted");
     },
   });
@@ -148,15 +150,18 @@ export function Characters({ campaignId }: { campaignId: string }) {
             triggeredUserId,
             session?.user.id === triggeredUserId,
           );
-          queryClient.setQueryData(["characters"], (old: Character[]) => {
-            return old.map((c) => {
-              if (c.id === character.id) {
-                return character;
-              } else {
-                return c;
-              }
-            });
-          });
+          queryClient.setQueryData(
+            ["characters", campaignId],
+            (old: Character[]) => {
+              return old.map((c) => {
+                if (c.id === character.id) {
+                  return character;
+                } else {
+                  return c;
+                }
+              });
+            },
+          );
         }
       },
     );
@@ -166,8 +171,30 @@ export function Characters({ campaignId }: { campaignId: string }) {
     };
   }, [queryClient, campaignId, session]);
 
-  if (charactersPending) {
-    return <div>Loading...</div>;
+  if (charactersLoading) {
+    return (
+      <main className="container mx-auto px-4 py-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {[1, 2, 3, 4, 5, 6].map((index) => (
+            <div
+              key={index}
+              className="space-y-4 rounded-3xl border border-border bg-background p-6"
+            >
+              <Skeleton className="h-8 w-3/4 rounded-md" />
+              <Skeleton className="h-5 w-1/2 rounded-md" />
+              <Skeleton className="h-3 w-full rounded-md" />
+              <div className="grid grid-cols-2 gap-3 mt-4">
+                <Skeleton className="h-10 rounded-2xl" />
+                <Skeleton className="h-10 rounded-2xl" />
+              </div>
+            </div>
+          ))}
+          <div className="flex items-center justify-center rounded-3xl border border-dashed border-border bg-background p-6">
+            <Skeleton className="h-10 w-32 rounded-full" />
+          </div>
+        </div>
+      </main>
+    );
   }
 
   return (

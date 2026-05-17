@@ -8,6 +8,7 @@ import { useMemo } from "react";
 import { getCampaign } from "@/actions";
 import { CampaignOverview } from "@/components/CampaignOverview";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { CampaignRollsProvider } from "@/context/CampaignRollsContext";
 import { authClient } from "@/lib/auth-client";
 
@@ -43,7 +44,42 @@ export default function CampaignLayout({
   }, [campaign, session]);
 
   if (isPending) {
-    return <div className="p-6">Loading...</div>;
+    return (
+      <div className="container mx-auto p-6 space-y-6">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="space-y-3">
+            <Skeleton className="h-10 w-48 rounded-full" />
+            <Skeleton className="h-4 w-64 rounded-full" />
+          </div>
+          <Skeleton className="h-11 w-32 rounded-full" />
+        </div>
+
+        <Skeleton className="h-72 rounded-[2rem]" />
+
+        <div className="flex flex-wrap gap-3">
+          {[1, 2, 3, 4, 5].map((nav) => (
+            <Skeleton key={nav} className="h-11 w-32 rounded-full" />
+          ))}
+        </div>
+
+        <div className="grid gap-4 lg:grid-cols-3">
+          {[1, 2, 3].map((card) => (
+            <div
+              key={card}
+              className="space-y-4 rounded-3xl border border-border p-6"
+            >
+              <Skeleton className="h-7 w-2/3 rounded-md" />
+              <Skeleton className="h-4 w-full rounded-md" />
+              <Skeleton className="h-4 w-5/6 rounded-md" />
+              <div className="flex gap-3">
+                <Skeleton className="h-10 w-24 rounded-full" />
+                <Skeleton className="h-10 w-24 rounded-full" />
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
   }
 
   if (!campaign) {

@@ -37,7 +37,7 @@ import {
   ItemDescription,
   ItemTitle,
 } from "./ui/item";
-import { Spinner } from "./ui/spinner";
+import { Skeleton } from "./ui/skeleton";
 
 const addUserFormSchema = z.object({
   email: z.email(),
@@ -94,7 +94,23 @@ export function CampaignUsers({ id }: { id: string }) {
   };
 
   if (isFetching) {
-    return <Spinner className="size-16 text-primary" />;
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Campaign users</CardTitle>
+          <CardDescription>Manage users for this campaign</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {[1, 2, 3].map((placeholder) => (
+            <div key={placeholder} className="space-y-2">
+              <Skeleton className="h-5 w-1/3 rounded-md" />
+              <Skeleton className="h-4 w-2/3 rounded-md" />
+            </div>
+          ))}
+          <Skeleton className="h-12 w-40 rounded-full" />
+        </CardContent>
+      </Card>
+    );
   }
 
   if (error) {

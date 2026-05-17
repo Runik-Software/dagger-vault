@@ -16,7 +16,7 @@ import {
   CardTitle,
 } from "./ui/card";
 import { Input } from "./ui/input";
-import { Spinner } from "./ui/spinner";
+import { Skeleton } from "./ui/skeleton";
 import { Textarea } from "./ui/textarea";
 
 export function PersonalCampaignSpace({ campaignId }: { campaignId: string }) {
@@ -66,9 +66,28 @@ export function PersonalCampaignSpace({ campaignId }: { campaignId: string }) {
 
   if (isLoading) {
     return (
-      <div className="flex flex-col items-center gap-4 p-6">
-        <Spinner />
-      </div>
+      <Card>
+        <CardHeader>
+          <CardTitle>
+            <Skeleton className="h-6 w-52 rounded-md" />
+          </CardTitle>
+          <CardDescription>
+            <Skeleton className="h-4 w-72 rounded-md" />
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <Skeleton className="h-40 w-full rounded-3xl" />
+          <div className="flex flex-col gap-3 md:flex-row">
+            <Skeleton className="h-12 flex-1 rounded-2xl" />
+            <Skeleton className="h-12 w-28 rounded-2xl" />
+          </div>
+          <div className="grid grid-cols-3 gap-4">
+            {[1, 2, 3].map((item) => (
+              <Skeleton key={item} className="h-40 rounded-3xl" />
+            ))}
+          </div>
+        </CardContent>
+      </Card>
     );
   }
 
