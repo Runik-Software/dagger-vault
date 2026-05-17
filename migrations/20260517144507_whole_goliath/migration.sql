@@ -1,0 +1,1 @@
+ALTER TABLE "campaigns" ADD COLUMN "settings" jsonb DEFAULT '{"fearEnabled":true}';
