@@ -186,32 +186,28 @@ export default function CharacterCard({
                 field={character.hitpoints}
                 name="hitpoints"
                 onUpdate={onUpdate}
-                iconType="heart"
-                fillColor="text-red-500"
+                iconType="health"
               />
               <IconResourceTracker
                 label="Hope"
                 field={character.hope}
                 name="hope"
                 onUpdate={onUpdate}
-                iconType="star"
-                fillColor="text-amber-500"
+                iconType="hope"
               />
               <IconResourceTracker
                 label="Stress"
                 field={character.stress}
                 name="stress"
                 onUpdate={onUpdate}
-                iconType="zap"
-                fillColor="text-orange-500"
+                iconType="stress"
               />
               <IconResourceTracker
                 label="Armour Slots"
                 field={character.armourSlots}
                 name="armourSlots"
                 onUpdate={onUpdate}
-                iconType="shield"
-                fillColor="text-blue-500"
+                iconType="armour"
               />
             </>
           ) : (

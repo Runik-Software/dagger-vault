@@ -1,6 +1,11 @@
-import { Heart, Minus, Plus, Shield, Star, Zap } from "lucide-react";
+import { Minus, Plus } from "lucide-react";
 import type { Resource } from "@/db/schema";
 import type { Character } from "@/schema";
+import { Diamond } from "./icons/Diamond";
+import { Heart } from "./icons/Heart";
+import { Lightning } from "./icons/Lightning";
+import { Shield } from "./icons/Shield";
+import { Star } from "./icons/Star";
 import { Button } from "./ui/button";
 
 interface IconResourceTrackerProps {
@@ -8,8 +13,7 @@ interface IconResourceTrackerProps {
   field: Resource;
   name: keyof Character;
   onUpdate: (updates: Partial<Character>) => void;
-  iconType: "heart" | "star" | "zap" | "shield";
-  fillColor: string;
+  iconType: "health" | "hope" | "stress" | "armour";
 }
 
 export const IconResourceTracker = ({
@@ -18,7 +22,6 @@ export const IconResourceTracker = ({
   name,
   onUpdate,
   iconType,
-  fillColor,
 }: IconResourceTrackerProps) => {
   const updateResource = (delta: number) => {
     let newValue = current + delta;
@@ -36,41 +39,15 @@ export const IconResourceTracker = ({
   };
 
   const getIcon = (filled: boolean) => {
-    const baseClassName = `h-8 w-8 ${filled ? fillColor : ""}`;
-
     switch (iconType) {
-      case "heart":
-        return (
-          <Heart
-            className={baseClassName}
-            strokeWidth={2}
-            fill={filled ? "currentColor" : "none"}
-          />
-        );
-      case "star":
-        return (
-          <Star
-            className={baseClassName}
-            strokeWidth={2}
-            fill={filled ? "currentColor" : "none"}
-          />
-        );
-      case "zap":
-        return (
-          <Zap
-            className={baseClassName}
-            strokeWidth={2}
-            fill={filled ? "currentColor" : "none"}
-          />
-        );
-      case "shield":
-        return (
-          <Shield
-            className={baseClassName}
-            strokeWidth={2}
-            fill={filled ? "currentColor" : "none"}
-          />
-        );
+      case "health":
+        return <Heart className="h-full w-full" filled={filled} />;
+      case "hope":
+        return <Diamond className="h-full w-full" filled={filled} />;
+      case "stress":
+        return <Lightning className="h-full w-full" filled={filled} />;
+      case "armour":
+        return <Shield className="h-full w-full" filled={filled} />;
       default:
         return null;
     }
@@ -109,8 +86,7 @@ export const IconResourceTracker = ({
               <Button
                 key={iconKey}
                 variant="ghost"
-                size="icon-lg"
-                className="text-muted-foreground hover:text-foreground transition-colors cursor-pointer w-8 h-8"
+                className="rounded-full h-16 w-16"
                 onClick={() => setResourceValue(idx + 1)}
               >
                 {getIcon(idx < current)}
