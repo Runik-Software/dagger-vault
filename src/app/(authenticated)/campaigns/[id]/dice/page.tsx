@@ -8,7 +8,9 @@ export default function CampaignDicePage() {
   const { id: campaignId } = useParams<{ id: string }>();
   return (
     <DiceProvider>
-      <DiceRoller campaignId={campaignId} />
+      <div className="container mx-auto p-6">
+        <DiceRoller campaignId={campaignId} />
+      </div>
     </DiceProvider>
   );
 }

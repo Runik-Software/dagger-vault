@@ -23,7 +23,6 @@ export function CampaignOverview({ campaign }: { campaign: Campaign }) {
     const channel = pusher.subscribe(`private-campaign-${campaign.id}-fear`);
 
     channel.bind("update", ({ newValue }: { newValue: number }) => {
-      console.log("Received fear update via Pusher", newValue);
       queryClient.setQueryData(["campaign", campaign.id], (old: Campaign) => {
         return {
           ...old,

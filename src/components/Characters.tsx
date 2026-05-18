@@ -8,16 +8,19 @@ import { toast } from "sonner";
 import {
   createCharacter,
   deleteCharacter,
+  getCampaign,
   getCharacters,
   updateCharacter,
 } from "@/actions";
+import { CampaignOverview } from "@/components/CampaignOverview";
 import CharacterCard from "@/components/CharacterCard";
 import CharacterDialog from "@/components/CharacterDialog";
+import { DiceRoller } from "@/components/DiceRoller";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { authClient } from "@/lib/auth-client";
 import { createPusherClient } from "@/lib/pusher";
-import type { Character, EditCharacter } from "@/schema";
+import type { Campaign, Character, EditCharacter } from "@/schema";
 
 export function Characters({ campaignId }: { campaignId: string }) {
   const { data: session } = authClient.useSession();
@@ -31,6 +34,13 @@ export function Characters({ campaignId }: { campaignId: string }) {
     queryKey: ["characters", campaignId],
     queryFn: () => {
       return getCharacters(campaignId);
+    },
+  });
+
+  const { data: campaignData } = useQuery({
+    queryKey: ["campaign", campaignId],
+    queryFn: () => {
+      return getCampaign(campaignId);
     },
   });
 
@@ -77,15 +87,19 @@ export function Characters({ campaignId }: { campaignId: string }) {
   });
 
   const handleUpdate = (id: string, updates: Partial<Character>) => {
-    queryClient.setQueryData(["characters"], (old: Character[]) => {
-      return old.map((c) => {
-        if (c.id === id) {
-          return { ...c, ...updates };
-        } else {
-          return c;
-        }
-      });
-    });
+    queryClient.setQueryData(
+      ["characters", campaignId],
+      (old?: Character[]) => {
+        if (!old) return old;
+        return old.map((c) => {
+          if (c.id === id) {
+            return { ...c, ...updates };
+          } else {
+            return c;
+          }
+        });
+      },
+    );
     let debounced = debouncedUpdatesRef.current.get(id);
     if (!debounced) {
       debounced = debounce((data: Partial<Character>) => {
@@ -171,6 +185,12 @@ export function Characters({ campaignId }: { campaignId: string }) {
     };
   }, [queryClient, campaignId, session]);
 
+  // Fullscreen state
+  const [fullscreenCharacterId, setFullscreenCharacterId] = useState<
+    string | null
+  >(null);
+  const [rightExpandedId, setRightExpandedId] = useState<string | null>(null);
+
   if (charactersLoading) {
     return (
       <main className="container mx-auto px-4 py-6">
@@ -194,6 +214,86 @@ export function Characters({ campaignId }: { campaignId: string }) {
           </div>
         </div>
       </main>
+    );
+  }
+
+  // If fullscreen is active render a split view overlay
+  if (fullscreenCharacterId) {
+    const primary = characters.find(
+      (c) => c.id === fullscreenCharacterId,
+    ) as Character;
+    const others = characters.filter((c) => c.id !== fullscreenCharacterId);
+
+    return (
+      <div className="fixed inset-0 z-50 bg-[url('/background.jpg')] bg-cover bg-center bg-fixed">
+        <div className="flex h-full flex-col overflow-hidden">
+          <div className="px-6 py-5">
+            {campaignData ? (
+              <CampaignOverview campaign={campaignData as Campaign} />
+            ) : null}
+          </div>
+          <div className="flex-1 flex overflow-hidden">
+            <div className="w-3/4 overflow-hidden">
+              <div className="flex h-full">
+                <div className="w-1/2 overflow-auto p-6">
+                  <div className="overflow-auto">
+                    <CharacterCard
+                      character={primary}
+                      onUpdate={(data) => handleUpdate(primary.id, data)}
+                      onEdit={handleEdit}
+                      onDelete={() => handleDeleteConfirm(primary.id)}
+                      onMinimize={() => setFullscreenCharacterId(null)}
+                      campaignId={campaignId}
+                      large
+                    />
+                  </div>
+                </div>
+                <div className="w-1/2 overflow-auto p-6">
+                  <div className="overflow-auto">
+                    <DiceRoller campaignId={campaignId} />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="w-1/4 overflow-auto p-4">
+              <div className="space-y-3">
+                {others.map((c) => (
+                  <div key={c.id}>
+                    {rightExpandedId === c.id ? (
+                      <CharacterCard
+                        character={c}
+                        onUpdate={(data) => handleUpdate(c.id, data)}
+                        onEdit={handleEdit}
+                        onDelete={() => handleDeleteConfirm(c.id)}
+                        campaignId={campaignId}
+                        onMinimize={() => setRightExpandedId(null)}
+                      />
+                    ) : (
+                      <CharacterCard
+                        compact
+                        character={c}
+                        onUpdate={() => {}}
+                        onEdit={handleEdit}
+                        onDelete={() => handleDeleteConfirm(c.id)}
+                        campaignId={campaignId}
+                        onClick={() => setRightExpandedId(c.id)}
+                      />
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <CharacterDialog
+          open={dialogOpen}
+          onOpenChange={setDialogOpen}
+          character={editingCharacter}
+          onSave={(data) => handleEditSave(data)}
+        />
+      </div>
     );
   }
 
@@ -230,6 +330,8 @@ export function Characters({ campaignId }: { campaignId: string }) {
                 onEdit={handleEdit}
                 onDelete={() => handleDeleteConfirm(character.id)}
                 campaignId={campaignId}
+                showFullscreenButton
+                onFullscreen={() => setFullscreenCharacterId(character.id)}
               />
             ))}
             <Button

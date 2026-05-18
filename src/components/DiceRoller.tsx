@@ -274,7 +274,7 @@ export function DiceRoller({ campaignId }: { campaignId: string }) {
   }, [campaignId]);
 
   return (
-    <div className=" w-full flex flex-col items-center gap-4 p-6">
+    <div className=" w-full flex flex-col items-center gap-4">
       <Card className="w-full max-w-2xl text-center">
         <CardHeader>
           <CardTitle className="text-2xl font-bold">Dice Roller</CardTitle>

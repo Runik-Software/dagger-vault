@@ -1,6 +1,8 @@
 import {
   ChevronDown,
   ChevronUp,
+  Maximize2,
+  Minimize2,
   Pencil,
   Save,
   Trash2,
@@ -30,6 +32,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "./ui/alert-dialog";
+import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
 
 interface CharacterCardProps {
   character: Character;
@@ -37,6 +40,13 @@ interface CharacterCardProps {
   onEdit: (character: Character) => void;
   onDelete: () => void;
   campaignId: string;
+  // Optional UI modes
+  compact?: boolean; // shows only name + image
+  large?: boolean; // show larger portrait and heading
+  onFullscreen?: () => void; // request main fullscreen view
+  onMinimize?: () => void; // request minimize when in fullscreen
+  onClick?: () => void; // card click (useful for compact)
+  showFullscreenButton?: boolean; // show expand control in header
 }
 
 export default function CharacterCard({
@@ -45,6 +55,12 @@ export default function CharacterCard({
   onEdit,
   onDelete,
   campaignId,
+  compact = false,
+  large = false,
+  onFullscreen,
+  onMinimize,
+  onClick,
+  showFullscreenButton = false,
 }: CharacterCardProps) {
   const [notesOpen, setNotesOpen] = useState<boolean>(false);
   const [updatedNotes, setUpdatedNotes] = useState<string>(
@@ -61,76 +77,161 @@ export default function CharacterCard({
     }
   }, [campaignId]);
 
-  return (
-    <Card className="overflow-hidden">
-      <div className="p-5 space-y-4">
-        <div className="flex items-start gap-4">
-          <div className="w-20 h-20 rounded-md bg-muted flex items-center justify-center shrink-0 overflow-hidden border">
+  if (compact) {
+    return (
+      <Card className="overflow-hidden cursor-pointer" onClick={onClick}>
+        <div className="p-3 flex items-center gap-3">
+          <div
+            className="w-14 h-14 rounded-md bg-muted flex items-center justify-center shrink-0 overflow-hidden border"
+            aria-hidden
+          >
             {character.portraitUrl ? (
               // biome-ignore lint/performance/noImgElement: Need to bypass Next restriction
               <img
                 src={character.portraitUrl}
                 alt={character.name}
-                width={20}
-                height={20}
+                width={56}
+                height={56}
                 className="w-full h-full object-cover"
               />
             ) : (
-              <User className="h-10 w-10 text-muted-foreground" />
+              <User className="h-8 w-8 text-muted-foreground" />
+            )}
+          </div>
+          <div className="min-w-0">
+            <h4 className="font-display font-semibold truncate">
+              {character.name}
+            </h4>
+          </div>
+        </div>
+      </Card>
+    );
+  }
+
+  return (
+    <Card className="overflow-hidden">
+      <div className={`${large ? "p-8 space-y-6" : "p-5 space-y-4"}`}>
+        <div className="flex items-start gap-4">
+          <div
+            className={`rounded-md bg-muted flex items-center justify-center shrink-0 overflow-hidden border w-20 h-20`}
+          >
+            {character.portraitUrl ? (
+              // biome-ignore lint/performance/noImgElement: Need to bypass Next restriction
+              <img
+                src={character.portraitUrl}
+                alt={character.name}
+                width={large ? 192 : 80}
+                height={large ? 192 : 80}
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <User
+                className={`${large ? "h-16 w-16" : "h-10 w-10"} text-muted-foreground`}
+              />
             )}
           </div>
           <div className="flex-1 min-w-0">
-            <h3
-              className="text-xl font-display font-semibold text-foreground truncate"
-              data-testid={`text-character-name-${character.id}`}
-            >
-              {character.name}
-            </h3>
-            <div className="flex gap-2 mt-2">
-              <Button
-                data-testid={`button-edit-${character.id}`}
-                size="sm"
-                variant="outline"
-                onClick={() => onEdit(character)}
-              >
-                <Pencil className="h-4 w-4" />
-              </Button>
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <Button
-                    data-testid={`button-delete-${character.id}`}
-                    size="sm"
-                    variant="outline"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle className="font-display">
-                      Delete Character?
-                    </AlertDialogTitle>
-                    <AlertDialogDescription className="font-serif">
-                      Are you sure you want to delete{" "}
-                      <span className="font-semibold">{character.name}</span>?
-                      This action cannot be undone.
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel data-testid="button-cancel-delete">
-                      Cancel
-                    </AlertDialogCancel>
-                    <AlertDialogAction
-                      data-testid="button-confirm-delete"
-                      onClick={onDelete}
-                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            <div className="flex items-start justify-between gap-4">
+              <div className="min-w-0">
+                <h3
+                  className={`${large ? "text-3xl" : "text-xl"} font-display font-semibold text-foreground truncate`}
+                  data-testid={`text-character-name-${character.id}`}
+                >
+                  {character.name}
+                </h3>
+              </div>
+              <div className="flex gap-2 mt-0">
+                {showFullscreenButton && onFullscreen ? (
+                  <Tooltip>
+                    <TooltipTrigger>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={onFullscreen}
+                      >
+                        <Maximize2 className="h-4 w-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>View character in fullscreen</p>
+                    </TooltipContent>
+                  </Tooltip>
+                ) : null}
+                {onMinimize ? (
+                  <Tooltip>
+                    <TooltipTrigger>
+                      <Button size="sm" variant="outline" onClick={onMinimize}>
+                        <Minimize2 className="h-4 w-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Minimize character card</p>
+                    </TooltipContent>
+                  </Tooltip>
+                ) : null}
+                <Tooltip>
+                  <TooltipTrigger>
+                    <Button
+                      data-testid={`button-edit-${character.id}`}
+                      size="sm"
+                      variant="outline"
+                      onClick={() => onEdit(character)}
                     >
-                      Delete
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
+                      <Pencil className="h-4 w-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Edit character</p>
+                  </TooltipContent>
+                </Tooltip>
+                <Tooltip>
+                  <TooltipTrigger>
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button
+                          data-testid={`button-delete-${character.id}`}
+                          size="sm"
+                          variant="outline"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle className="font-display">
+                            Delete Character?
+                          </AlertDialogTitle>
+                          <AlertDialogDescription className="font-serif">
+                            Are you sure you want to delete{" "}
+                            <span className="font-semibold">
+                              {character.name}
+                            </span>
+                            ? This action cannot be undone.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel data-testid="button-cancel-delete">
+                            Cancel
+                          </AlertDialogCancel>
+                          <AlertDialogAction
+                            data-testid="button-confirm-delete"
+                            onClick={onDelete}
+                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                          >
+                            Delete
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Delete character</p>
+                  </TooltipContent>
+                </Tooltip>
+              </div>
             </div>
+
+            <div className="mt-2" />
           </div>
         </div>
 
