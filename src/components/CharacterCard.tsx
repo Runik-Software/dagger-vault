@@ -46,7 +46,6 @@ interface CharacterCardProps {
   onFullscreen?: () => void; // request main fullscreen view
   onMinimize?: () => void; // request minimize when in fullscreen
   onClick?: () => void; // card click (useful for compact)
-  showFullscreenButton?: boolean; // show expand control in header
 }
 
 export default function CharacterCard({
@@ -60,7 +59,6 @@ export default function CharacterCard({
   onFullscreen,
   onMinimize,
   onClick,
-  showFullscreenButton = false,
 }: CharacterCardProps) {
   const [notesOpen, setNotesOpen] = useState<boolean>(false);
   const [updatedNotes, setUpdatedNotes] = useState<string>(
@@ -141,7 +139,7 @@ export default function CharacterCard({
                 </h3>
               </div>
               <div className="flex gap-2 mt-0">
-                {showFullscreenButton && onFullscreen ? (
+                {onFullscreen ? (
                   <Tooltip>
                     <TooltipTrigger>
                       <Button

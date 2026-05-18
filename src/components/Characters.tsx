@@ -268,6 +268,7 @@ export function Characters({ campaignId }: { campaignId: string }) {
                         onDelete={() => handleDeleteConfirm(c.id)}
                         campaignId={campaignId}
                         onMinimize={() => setRightExpandedId(null)}
+                        onFullscreen={() => setFullscreenCharacterId(c.id)}
                       />
                     ) : (
                       <CharacterCard
@@ -330,7 +331,6 @@ export function Characters({ campaignId }: { campaignId: string }) {
                 onEdit={handleEdit}
                 onDelete={() => handleDeleteConfirm(character.id)}
                 campaignId={campaignId}
-                showFullscreenButton
                 onFullscreen={() => setFullscreenCharacterId(character.id)}
               />
             ))}
