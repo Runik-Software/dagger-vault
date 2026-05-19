@@ -129,7 +129,7 @@ export default function CharacterCard({
             )}
           </div>
           <div className="flex-1 min-w-0">
-            <div className="flex items-start justify-between gap-4">
+            <div className="flex flex-col xl:flex-row xl:items-start xl:justify-between gap-2">
               <div className="min-w-0">
                 <h3
                   className={`${large ? "text-3xl" : "text-xl"} font-display font-semibold text-foreground truncate`}
@@ -138,35 +138,41 @@ export default function CharacterCard({
                   {character.name}
                 </h3>
               </div>
-              <div className="flex gap-2 mt-0">
-                {onFullscreen ? (
-                  <Tooltip>
-                    <TooltipTrigger>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={onFullscreen}
-                      >
-                        <Maximize2 className="h-4 w-4" />
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p>View character in fullscreen</p>
-                    </TooltipContent>
-                  </Tooltip>
-                ) : null}
-                {onMinimize ? (
-                  <Tooltip>
-                    <TooltipTrigger>
-                      <Button size="sm" variant="outline" onClick={onMinimize}>
-                        <Minimize2 className="h-4 w-4" />
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p>Minimize character card</p>
-                    </TooltipContent>
-                  </Tooltip>
-                ) : null}
+              <div className="flex gap-2 mt-2 lg:mt-0">
+                <div className="hidden lg:flex lg:items-center lg:gap-2">
+                  {onFullscreen ? (
+                    <Tooltip>
+                      <TooltipTrigger>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={onFullscreen}
+                        >
+                          <Maximize2 className="h-4 w-4" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>View character in fullscreen</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  ) : null}
+                  {onMinimize ? (
+                    <Tooltip>
+                      <TooltipTrigger>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={onMinimize}
+                        >
+                          <Minimize2 className="h-4 w-4" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Minimize character card</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  ) : null}
+                </div>
                 <Tooltip>
                   <TooltipTrigger>
                     <Button
