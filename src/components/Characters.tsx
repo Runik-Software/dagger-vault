@@ -18,6 +18,7 @@ import CharacterDialog from "@/components/CharacterDialog";
 import { DiceRoller } from "@/components/DiceRoller";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { DiceProvider } from "@/context/DiceContext";
 import { authClient } from "@/lib/auth-client";
 import { createPusherClient } from "@/lib/pusher";
 import type { Campaign, Character, EditCharacter } from "@/schema";
@@ -250,7 +251,9 @@ export function Characters({ campaignId }: { campaignId: string }) {
                 </div>
                 <div className="w-1/2 overflow-auto p-6">
                   <div className="overflow-auto">
-                    <DiceRoller campaignId={campaignId} />
+                    <DiceProvider>
+                      <DiceRoller campaignId={campaignId} />
+                    </DiceProvider>
                   </div>
                 </div>
               </div>
